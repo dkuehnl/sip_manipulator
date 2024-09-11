@@ -1,0 +1,18 @@
+#Building
+FROM gcc:latest AS build 
+
+#Docker-Arbeitsverzeichnis
+WORKDIR /usr/src/app
+
+COPY . . 
+
+#Binary erstellen
+RUN gcc -o sip-manipulator main.c 
+
+#Minimal-Image erstellen
+FROM alpine:latest
+
+COPY --from=build /usr/src/app/sip-manipulator /usr/local/bin/sip-manipulator
+
+CMD ["/usr/local/bin/sip-manipulator"]
+
