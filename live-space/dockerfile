@@ -10,8 +10,8 @@ COPY . .
 RUN gcc -o sip-manipulator main.c 
 
 #Minimal-Image erstellen
-#FROM alpine:latest
-FROM gcc:latest 
+FROM alpine:latest
+
 
 COPY --from=build /usr/src/app/sip-manipulator /usr/local/bin/sip-manipulator
 COPY hmr.txt /usr/local/bin/hmr.txt
