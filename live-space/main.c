@@ -46,7 +46,7 @@ void process_header(char *sip_message, HeaderManipulation *modifications, int nu
 }
 
 void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
-    FILE *file = fopen("./hmr.txt", "w"); 
+    FILE *file = fopen("/usr/local/bin/hmr.txt", "w"); 
     for (int i = 0; i < num_header_manipulations; i++) {
         fprintf(file, "%s, %s\n", modifications[i].header_name, modifications[i].new_value);
     }
@@ -54,7 +54,7 @@ void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
 }
 
 HeaderManipulation* load_hmr_from_file(int *loaded_entries) {
-    FILE *file = fopen("./hmr.txt", "r"); 
+    FILE *file = fopen("/usr/local/bin/hmr.txt", "r"); 
     if (file == NULL) {
         printf("Err: File couldn't be opened!\n"); 
         return NULL;
@@ -152,6 +152,8 @@ int main(int argc, char* argv[])
     if (modifications == NULL) {
         printf("ERROR: HMR could not be loaded.\n\n"); 
         //exit(EXIT_FAILURE);
+    } else {
+        printf("HMR successfully loaded..\nReady to proceed...\n");
     }
 
     //server loop
