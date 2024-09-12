@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
     HeaderManipulation *modifications = load_hmr_from_file(&load_count);
     if (modifications == NULL) {
         printf("ERROR: HMR could not be loaded.\n\n"); 
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
     }
 
     //server loop
