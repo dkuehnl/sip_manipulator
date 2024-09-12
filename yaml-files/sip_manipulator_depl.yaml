@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sip-manipulator-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sip-manipulator-server
+  template:
+    metadata:
+      labels:
+        app: sip-manipulator-server
+    spec:
+      containers:
+      - name: sip-manipulator-container
+        image: dkuehnlein/sip-manipulator:latest
+        ports:
+        - containerPort: 5060

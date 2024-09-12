@@ -6,32 +6,14 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define IP_ADDRESS  "192.168.178.54"
-#define IP_PORT     "30080"
+#define IP_ADDRESS_OWN  "192.168.178.54"
+#define IP_PORT_INT "5060"
+#define IP_PORT_EXT "30080"
 
 typedef struct {
     char header_name[64];
     char new_value[128];
 } HeaderManipulation;
-
-
-void create_sip_option(char *buffer, const char *pcscf) {
-    snprintf(buffer, 1024,
-    "OPTIONS sip:%s SIP/2.0\r\n"
-    "Via: SIP/2.0/TCP 192.168.178.62:5060;branch=z9hG4bK776asdhds\r\n"
-    "Max-Forwards: 70\r\n"
-    "From: <sip:%s>;tag=djaiefkla348afikju3u9dkhjk3\r\n"
-    "To: <sip:%s>\r\n"
-    "Call-ID: jfköajbsödkivha@192.168.178.62\r\n"
-    "CSeq: 102 OPTIONS\r\n"
-    "Contact: <sip:+4919952000234234@192.168.178.62:5060;transport=tcp>\r\n"
-    "User-Agent: Dennis-Test\r\n"
-    "Allow: INVITE, ACK, CANCEL, OPTIONS, BYE\r\n"
-    "Content-Length: 0\r\n"
-    "\r\n",
-    pcscf, pcscf, pcscf
-    );
-}
 
 void hmr(char *sip_message, const char *header_name, char *new_value) {
     char *header_start = strstr(sip_message, header_name);
@@ -63,35 +45,71 @@ void process_header(char *sip_message, HeaderManipulation *modifications, int nu
     }
 }
 
-int main(int argc, char* argv[])
-{
-    int                 sockfd;
-    struct sockaddr_in  sockaddr;
-    char                buffer[1024];
-    int                 rv;
-    char                sip_message[1024];
-    char                pcscf[256];
+void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
+    FILE *file = fopen("./hmr.txt", "w"); 
+    for (int i = 0; i < num_header_manipulations; i++) {
+        fprintf(file, "%s, %s\n", modifications[i].header_name, modifications[i].new_value);
+    }
+    fclose(file);
+}
 
-    HeaderManipulation modifications[] = {
-        {"From", "<sip:+49931333031@tel.t-online.de>;tag=asdfjkl3j1"},
-        {"To", "<sip:+4915153710510@tel.t-online.de>"},
-        {"Call-ID", "dkjlasdjoiujlkajdfkjh@192.168.178.54"},
-        {"Contact", "<sip:+49199620000001598735@192.168.178.54:5060;transport=tcp>"}
-    };
-
-    int num_modifications = sizeof(modifications) / sizeof(modifications[0]);
-
-    printf("TCP client started ...\n");
-    printf("Please enter the PCSCF-IP: ");
-    fgets(pcscf, 64, stdin);
-
-    size_t len = strlen(pcscf);
-    if (len > 0 && pcscf[len -1] == '\n') {
-        pcscf[len -1] = '\0';
+HeaderManipulation* load_hmr_from_file(int *loaded_entries) {
+    FILE *file = fopen("./hmr.txt", "r"); 
+    if (file == NULL) {
+        printf("Err: File couldn't be opened!\n"); 
+        return NULL;
     }
 
-    create_sip_option(sip_message, pcscf);
-    printf("Following message will be send: %s\n", sip_message);
+    int capacity = 10;
+    int count = 0; 
+
+    HeaderManipulation *modifications = malloc(capacity * sizeof(HeaderManipulation)); 
+    if (modifications == NULL) {
+        printf("Err: Couldn't reserve memory\n"); 
+        fclose(file); 
+        return NULL;
+    }
+
+    while (fscanf(file, "%63s %127s", modifications[count].header_name, modifications[count].new_value) == 2){
+        count++;
+
+        if (count >= capacity) {
+            capacity *= 2;
+            HeaderManipulation *temp = realloc(modifications, capacity * sizeof(HeaderManipulation));
+            if (temp == NULL) {
+                printf("Err: Realloc failed\n");
+                free(modifications); 
+                fclose(file); 
+                return NULL;
+            }
+            modifications = temp;
+        }
+    }
+
+    fclose(file);
+    *loaded_entries = count;
+
+    for (int i = 0; i < count; i++) {
+        if (strchr(modifications[i].header_name, ',') != NULL){
+            char *name = modifications[i].header_name; 
+            name[strlen(name)-1] = '\0';
+            strcpy(modifications[i].header_name, name); 
+        }
+    }
+    return modifications;
+}
+
+int main(int argc, char* argv[])
+{
+    int                 sockfd, connfd;
+    struct sockaddr_in  sockaddr, connaddr;
+    unsigned int        connaddr_len;
+    char                buffer[2048];
+    int                 rv;
+    int                 load_count = 0;
+
+
+    printf("TCP server started ...\n");
 
     //create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -103,51 +121,75 @@ int main(int argc, char* argv[])
     else
         printf("Socket successfully created ...\n");
 
-    //set destination IP address & IP port (server)
+    //set IP address & IP port
     memset(&sockaddr, 0x00, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_addr.s_addr = inet_addr(IP_ADDRESS);
-    sockaddr.sin_port = htons(atoi(IP_PORT));
+    sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sockaddr.sin_port = htons(atoi(IP_PORT_INT));
 
-    //try to connect client to server
-    if(connect(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) != 0)
+    //bind socket
+    if((bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr))) != 0)
     {
-        printf("ERROR: Connect failed ...\n\n");
+        printf("ERROR: Socket bind failed ...\n\n");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
     else
-        printf("Connection established ...\n");
+        printf("Socket successfully binded ...\n");
 
-    //send data to server
-    strcpy(buffer, sip_message);
-    rv = write(sockfd, buffer, strlen(buffer));
-    printf("%i bytes of data transmitted...\n", rv);
+    //listen to socket
+    if((listen(sockfd, 5)) != 0)
+    {
+        printf("ERROR: Listen failed ...\n\n");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+    else
+        printf("Server listening ...\n\n");
 
-    //receive data from server
-    rv = read(sockfd, buffer, sizeof(buffer));
-    printf("%i bytes of data received...\nWill be processed now...\n", rv);
-
-    char mod_flag[2];
-    printf("Want to search in reveived data? (y/n): ");
-    scanf("%s", &mod_flag);
-    if (strncmp(mod_flag, "y", 1) == 0) {
-        process_header(buffer, modifications, num_modifications);
-
-        printf("\n----------------------------------\n");
-        printf("Mirroring Package against server...\n");
-
-        rv = write(sockfd, buffer, strlen(buffer));
-        printf("%i bytes of data transmitted.\n", rv);
-        rv = read(sockfd, buffer, sizeof(buffer));
-        printf("%i bytes of data received.\n\n", rv);
-        printf("%s\n", buffer);
+    //Load HMR's
+    HeaderManipulation *modifications = load_hmr_from_file(&load_count);
+    if (modifications == NULL) {
+        printf("ERROR: HMR could not be loaded.\n\n"); 
+        exit(EXIT_FAILURE);
     }
 
-    //disconnect and close socket
-    printf("Terminate connection ...\n");
-    shutdown(sockfd, SHUT_RDWR);
-    close(sockfd);
+    //server loop
+    while(1)
+    {
+        connaddr_len = sizeof(connaddr);
+        connfd = accept(sockfd, (struct sockaddr*)&connaddr, &connaddr_len);
+        if(connfd < 0)
+        {
+            printf("ERROR: Server accept failed ...\n\n");
+            break;
+        }
+        else
+            printf("New connection accepted ...\n");
 
-    exit(EXIT_SUCCESS);
+        //connection loop
+        while(1)
+        {
+            //try to read from socket
+            rv = read(connfd, buffer, sizeof(buffer));
+
+            //close connection if error detected
+            if(rv < 1)
+            {
+                printf("Connection closed ...\n\n");
+                close(connfd);
+                break;
+            }
+            else
+                printf("%i bytes of data received...\n", rv);
+
+            if (load_count > 0)
+            {
+                process_header(buffer, modifications, load_count);
+            }
+
+            rv = write(connfd, buffer, strlen(buffer) + 1);
+            printf("Transmitted Buffer:\n\n %s\n", buffer);
+        }
+    }
 }

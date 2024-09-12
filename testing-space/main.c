@@ -7,6 +7,60 @@ typedef struct {
     char new_value[128];
 } HeaderManipulation;
 
+HeaderManipulation* load_hmr_from_file(int *loaded_entries) {
+    FILE *file = fopen("./hmr.txt", "r"); 
+    if (file == NULL) {
+        printf("Err: File couldn't be opened!\n"); 
+        return NULL;
+    }
+
+    int capacity = 10;
+    int count = 0; 
+
+    HeaderManipulation *modifications = malloc(capacity * sizeof(HeaderManipulation)); 
+    if (modifications == NULL) {
+        printf("Err: Couldn't reserve memory\n"); 
+        fclose(file); 
+        return NULL;
+    }
+
+    while (fscanf(file, "%63s %127s", modifications[count].header_name, modifications[count].new_value) == 2){
+        count++;
+
+        if (count >= capacity) {
+            capacity *= 2;
+            HeaderManipulation *temp = realloc(modifications, capacity * sizeof(HeaderManipulation));
+            if (temp == NULL) {
+                printf("Err: Realloc failed\n");
+                free(modifications); 
+                fclose(file); 
+                return NULL;
+            }
+            modifications = temp;
+        }
+    }
+
+    fclose(file);
+    *loaded_entries = count;
+
+    for (int i = 0; i < count; i++) {
+        if (strchr(modifications[i].header_name, ',') != NULL){
+            char *name = modifications[i].header_name; 
+            name[strlen(name)-1] = '\0';
+            strcpy(modifications[i].header_name, name); 
+        }
+    }
+    return modifications;
+}
+
+void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
+    FILE *file = fopen("hmr.txt", "w"); 
+    for (int i = 0; i < num_header_manipulations; i++) {
+        fprintf(file, "%s, %s\n", modifications[i].header_name, modifications[i].new_value);
+    }
+    fclose(file);
+}
+
 void hmr(char *sip_message, const char *header_name, char *new_value) {
     char *header_start = strstr(sip_message, header_name);
 
@@ -39,6 +93,7 @@ void process_header(char *sip_message, HeaderManipulation *modifications, int nu
 
 int main() {
     char    buffer[1024];
+    int     load_count = 0;
     // char    header[128];
 
     snprintf(buffer, 1024,
@@ -55,17 +110,22 @@ int main() {
     "Content-Length: 0\r\n"
     "\r\n");
 
-    HeaderManipulation modifications[] = {
+    /*HeaderManipulation modifications[] = {
         {"From", "<sip:+49931333031@tel.t-online.de>;tag=asdfjkl3j1"},
         {"To", "<sip:+4915153710510@tel.t-online.de>"},
         {"Call-ID", "dkjlasdjoiujlkajdfkjh@192.168.178.54"},
         {"Contact", "<sip:+49199620000001598735@192.168.178.54:5060;transport=tcp>"}
-    };
+    };*/
+    
+    HeaderManipulation *modifications = load_hmr_from_file(&load_count);
 
-    int num_modifications = sizeof(modifications) / sizeof(modifications[0]);
-
-    process_header(buffer, modifications, num_modifications);
+    printf("Following modifications are saved: \n"); 
+    for (int i = 0; i < load_count; i++) {
+        printf("%d: %s %s\n", i+1, modifications[i].header_name, modifications[i].new_value);
+    }
+    printf("\n\n");
+    process_header(buffer, modifications, load_count);
     printf("\n%s\n", buffer);
-
+    //save_hmr(modifications, num_modifications); 
     return 0;
 }
