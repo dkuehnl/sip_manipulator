@@ -14,7 +14,7 @@ RUN gcc -o sip-manipulator main.c
 FROM gcc:latest 
 
 COPY --from=build /usr/src/app/sip-manipulator /usr/local/bin/sip-manipulator
-#COPY hmr.txt /usr/local/bin/hmr.txt
+COPY hmr.txt /usr/local/bin/hmr.txt
 
 CMD ["/usr/local/bin/sip-manipulator"]
 
