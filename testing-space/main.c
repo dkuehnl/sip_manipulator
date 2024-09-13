@@ -74,6 +74,12 @@ void hmr(char *sip_message, const char *header_name, char *new_value) {
                 value_start++;
                 while(*value_start == ' ') value_start++;
                 size_t new_value_length = strlen(new_value);
+
+                /*if (strncmp(new_value + new_value_length -2, "\r\n", 2) != 0) {
+                    printf("falsches Zeilenende detektiert\n"); 
+                    strcat(new_value, "\r\n"); 
+                    new_value_length += 2;
+                }*/
                 size_t remaining_message_length = strlen(line_end);
 
                 memmove(value_start + new_value_length, line_end, remaining_message_length + 1);
@@ -124,7 +130,14 @@ int main() {
         printf("%d: %s %s\n", i+1, modifications[i].header_name, modifications[i].new_value);
     }
     printf("\n\n");
+    size_t old_len = strlen(buffer); 
+    printf("Headergröße vor Manipulation: %ld\n\n", old_len);
     process_header(buffer, modifications, load_count);
+
+    size_t new_len = strlen(buffer); 
+    printf("Headergröße nach Manipulation: %ld\n\n", new_len); 
+    char *end_of_message = strstr(buffer, "\r\n\r\n"); 
+    printf("End of File:\n'%s'\n", end_of_message-17);
     printf("\n%s\n", buffer);
     //save_hmr(modifications, num_modifications); 
     return 0;
