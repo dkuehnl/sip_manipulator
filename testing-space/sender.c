@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define IP_ADDRESS  "127.0.0.1"
-#define IP_PORT     "10000"
+#define IP_ADDRESS  "192.168.178.54"
+#define IP_PORT     "30080"
 
 void create_sip_option(char *buffer, const char *pcscf) {
     snprintf(buffer, 1024,
