@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 
 #define IP_ADDRESS_OWN  "192.168.178.54"
-#define IP_PORT_INT "5060"
+#define IP_PORT_INT "10000"
 #define IP_PORT_EXT "30080"
 
 typedef struct {
@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
 
             rv = write(connfd, buffer, strlen(buffer) + 1);
             printf("Transmitted Buffer:\n\n %s\n", buffer);
+            memset(buffer, 0, sizeof(buffer));
         }
     }
 }
