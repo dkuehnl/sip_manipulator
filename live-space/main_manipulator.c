@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#include "manipulator-function.h"
 #include "log.h"
 
 typedef struct {
@@ -50,7 +49,7 @@ void process_header(char *sip_message, HeaderManipulation *modifications, int nu
 }
 
 void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
-    FILE *file = fopen("/usr/local/bin/hmr.txt", "w"); 
+    FILE *file = fopen("/usr/src/app/hmr.txt", "w"); 
     for (int i = 0; i < num_header_manipulations; i++) {
         fprintf(file, "%s, %s\n", modifications[i].header_name, modifications[i].new_value);
     }
@@ -58,7 +57,7 @@ void save_hmr(HeaderManipulation *modifications, int num_header_manipulations) {
 }
 
 HeaderManipulation* load_hmr_from_file(int *loaded_entries, FILE* logfile) {
-    FILE *file = fopen("/usr/local/bin/hmr.txt", "r"); 
+    FILE *file = fopen("/usr/src/app/hmr.txt", "r"); 
     if (file == NULL) {
         fprintf(logfile, "%s - ERR LOAD_HMR: File couldn't be opened!\n", get_timestamp()); 
         return NULL;
@@ -104,7 +103,7 @@ HeaderManipulation* load_hmr_from_file(int *loaded_entries, FILE* logfile) {
 }
 
 void load_config(char *ip_address_ext, char *ip_port_ext, char *ip_port_int, FILE* logfile){
-    FILE *config = fopen("./config.txt", "r"); 
+    FILE *config = fopen("/usr/src/app/config.txt", "r"); 
     if (config == NULL) {
         fprintf(logfile, "%s - ERR LOAD_CONFIG: Unable to read config-file. Standard-values are used.\n", get_timestamp()); 
         return;
@@ -123,7 +122,7 @@ void load_config(char *ip_address_ext, char *ip_port_ext, char *ip_port_int, FIL
     fclose(config);
 }
 
-void sip_manipulator()
+int main()
 {
     int                 sockfd, connfd, sockfd_ext;
     struct sockaddr_in  sockaddr, connaddr, sockaddr_ext;
@@ -139,7 +138,7 @@ void sip_manipulator()
 
 
     //Start Logging
-    FILE *logfile_server = fopen("./log_manipulator.txt", "a"); 
+    FILE *logfile_server = fopen("/usr/src/app/log_manipulator.txt", "a"); 
     fprintf(logfile_server, "%s - SIP-Manipulator v2.0 startet...\n", get_timestamp());
     fprintf(logfile_server, "%s - Loading config-file...\n", get_timestamp());
     load_config(ip_addr_ext, ip_port_ext, ip_port_int, logfile_server); 
@@ -197,7 +196,7 @@ void sip_manipulator()
     }
 
     //server loop
-    while(server_running)
+    while(1)
     {
         fprintf(logfile_server, "%s - Waiting for incoming connection...\n", get_timestamp()); 
         connaddr_len = sizeof(connaddr);
@@ -205,7 +204,7 @@ void sip_manipulator()
         if(connfd < 0)
         {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                printf("Timeout connection\n");
+                //printf("Timeout connection\n");
                 continue;
             } else {
                 fprintf(logfile_server, "%s - ERROR SER_LOOP: Something went wrong with accepting the connection \n", get_timestamp()); 
@@ -272,4 +271,6 @@ void sip_manipulator()
     fprintf(logfile_server, "%s - Stop-Signal from main-application detected\n", get_timestamp());
     close(sockfd); 
     fclose(logfile_server);  
+
+    return 0;
 }

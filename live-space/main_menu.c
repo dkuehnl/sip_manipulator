@@ -1,47 +1,84 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ncurses.h>
-#include <pthread.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 
-#include "manipulator-function.h"
 #include "log.h"
 
 bool server_running = false;
-pthread_t worker_thread;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
-void* manipulator_thread(void* arg) {
-    FILE *logfile = (FILE*)arg;
-    fprintf(logfile, "%s - >> Server is running..\n", get_timestamp());
+int get_pid(const char  *name, FILE *logfile) {
+    char path[265];
+    int pid;
+    char command[265];
 
-    sip_manipulator();
+    snprintf(command, sizeof(command), "pgrep %s", name);
 
-    fprintf(logfile, "%s - >> Server has stopped.\n", get_timestamp());  
-    return NULL; 
+    FILE *fp = popen(command, "r"); 
+    if (fgets(path, sizeof(path)-1, fp)!=NULL) {
+        pid = atoi(path); 
+    } else {
+        fprintf(logfile, "%s - No PID found for %s\n", get_timestamp(), name); 
+        return 0;
+    }
+    fprintf(logfile, "%s - PID %d found for %s\n", get_timestamp(), pid, name);
+
+    pclose(fp);
+
+    return pid;
 }
 
-void start_server(FILE *logfile) {
+int terminate_process(const int pid, FILE *logfile) {
+
+    if (kill(pid, SIGTERM) == -1) {
+        fprintf(logfile, "%s - PID %d could not be terminated, trying to kill..\n", get_timestamp(), pid); 
+        if (kill(pid, SIGKILL) == -1) {
+            fprintf(logfile, "%s - PID %d could not be killed.\n", get_timestamp(), pid);
+            return -1;
+        } else {
+            fprintf(logfile, "%s - PID %d stoppt by SIGKILL\n", get_timestamp(), pid);
+        }
+    } else {
+        fprintf(logfile, "%s - PID %d stoppt by SIGTERM\n", get_timestamp(), pid);
+    }
+    return 0;
+}
+
+int start_sip_server(FILE *logfile) {
     if (!server_running) {
         server_running = true; 
-        pthread_create(&worker_thread, NULL, manipulator_thread, (void*)logfile); 
-        mvprintw(LINES - 3, 0, "> Server started \n");
+        system("/usr/src/app/manipulator &");
+        fprintf(logfile, "%s - >> Server is running..\n", get_timestamp());
     } else {
         mvprintw(LINES - 3, 0, "> Server already running\n");
     }
+
+    return 0;
 }
 
-void stop_server() {
+void stop_sip_server(FILE *logfile) {
     mvprintw(LINES-3, 0, "> Trying to stop Server\n");
     if (server_running) {
-        
         server_running = false; 
-        //pthread_cancel(worker_thread);
-        pthread_join(worker_thread, NULL); 
-        mvprintw(LINES - 3, 0, "> Server stopped\n");
+        int pid = get_pid("manipulator", logfile);
+        if (pid != 0) {
+            if (terminate_process(pid, logfile) == 0) {
+                fprintf(logfile, "%s - >> Server has stopped.\n", get_timestamp()); 
+                mvprintw(LINES - 3, 0, "> Server stopped\n");
+            } else {
+                mvprintw(LINES -3, 0, "> Error while trying to stop the server - more information in the logs.\n");
+                return;
+            }
+        } else {
+            fprintf(logfile, "%s - No Process found to stop.\n", get_timestamp());
+            mvprintw(LINES -3, 0, "> Error while trying to stop the server - more information in the logs.\n");
+            return;
+        }
     } else {
         mvprintw(LINES -3, 0, "> Server currently not running\n"); 
     }
@@ -87,16 +124,16 @@ int main() {
     //Startup-Routine
     //Checking for logfiles
     char *logfiles[] = {
-        "log_main.txt",
-        "log_manipulator.txt",
+        "/usr/src/app/log_main.txt",
+        "/usr/src/app/log_manipulator.txt",
     };
     check_logfiles(logfiles, ARRAY_SIZE(logfiles));
     //opening main-logfile
     FILE *log_main = fopen(logfiles[0], "a"); 
-    if(access("hmr.txt", (F_OK | R_OK)) != 0) {
+    if(access("/usr/src/app/hmr.txt", (F_OK | R_OK)) != 0) {
         fprintf(log_main, "%s - WARNING: hmr-file does not exist or got wrong permission\n", get_timestamp());
     }
-    if (access("config.txt", (F_OK | R_OK | W_OK)) != 0) {
+    if (access("/usr/src/app/config.txt", (F_OK | R_OK | W_OK)) != 0) {
         fprintf(log_main, "%s - WARNING: config-file does not exist or got wrong permission\n", get_timestamp());
     }
 
@@ -111,6 +148,11 @@ int main() {
     int height = 10, width = 30, starty = (LINES - height) / 2, startx = (COLS - width) / 2;
     menu_win = newwin(height, width, starty, startx); 
     keypad(menu_win, TRUE); 
+
+    if (get_pid("manipulator", log_main) != 0) {
+        server_running = true;
+        mvprintw(LINES - 2, 0, "Server currently running.\n"); 
+    }
 
     while(1) {
         print_menu(menu_win, highlight, choices, n_choiches);
@@ -149,7 +191,7 @@ int main() {
             } else if (choice == 1){
                 clear();
                 mvprintw(LINES -2, 0, "Trying to start the server\n");
-                start_server(log_main);
+                start_sip_server(log_main);
                 if (server_running) {
                     mvprintw(LINES -2, 0, "Server sucessfully started\n"); 
                 }
@@ -158,7 +200,7 @@ int main() {
             } else if (choice == 2) {
                 mvprintw(LINES -2, 0, "Trying to stop the server\n");
                 refresh();
-                stop_server();
+                stop_sip_server(log_main);
                 if (!server_running) {
                     clear();
                     mvprintw(LINES -2, 0, "Server now has stopped\n"); 

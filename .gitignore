@@ -4,3 +4,6 @@ testing-space/build
 live-space/build
 
 live-space/log_*
+
+live-space/manipulator
+live-space/window

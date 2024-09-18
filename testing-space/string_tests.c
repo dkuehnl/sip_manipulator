@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
+#include <signal.h>
 
 #define IP_PORT "10800"
 
@@ -28,12 +29,29 @@ void load_config(char *ip_address_ext, char *ip_port_ext, char *ip_port_int){
 }
 
 int main() {
-    int i = 0; 
-    while (1) {
-        printf("%d. Warte 5 Sec\n", i++);
-        sleep(5); 
-        printf("5 Sekunden gewartet\n"); 
+    char path[1024] = "\0";
+    int pid = -1;
+
+    FILE *fp = popen("pgrep manipulator", "r"); 
+    if (fgets(path, sizeof(path)-1, fp)!=NULL) {
+        printf("%s\n", path);
+        pid = atoi(path); 
+    } else {
+        printf("Else-ZWeig");
+        pclose(fp);
+        return 0;
     }
+
+    printf("%d\n\n", pid);
+
+    pclose(fp);
+
+ /*   if (kill(pid, SIGTERM) == -1) {
+        printf("Fehler beim terminieren\nTry to kill\n");
+        kill(pid, SIGKILL);
+    } else { 
+        printf("erfolgreich terminiert\n"); 
+    }*/
 
     return 0;
 }
