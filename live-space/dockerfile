@@ -16,5 +16,5 @@ RUN gcc -o sip-manipulator main.c manipulator-function.c log.c -lncurses
 
 COPY hmr.txt config.txt /usr/src/app/
 
-CMD ["/bin/bash"]
+CMD ["sleep", "infinity"]
 
