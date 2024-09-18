@@ -6,18 +6,18 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define IP_ADDRESS  "192.168.178.54"
-#define IP_PORT     "30080"
+#define IP_ADDRESS  "127.0.0.1"
+#define IP_PORT     "5060"
 
 void create_sip_option(char *buffer, const char *pcscf) {
     snprintf(buffer, 1024,
-    "OPTIONS sip:%s SIP/2.0\r\n"
-    "Via: SIP/2.0/TCP 192.168.178.62:5060;branch=z9hG4bK776asdhds\r\n"
+    "OPTIONS sip:%s:5060;transport=TCP SIP/2.0\r\n"
+    "Via: SIP/2.0/TCP 192.168.178.62:5060;branch=z9hG4bK776asdhdsdafdsf674\r\n"
     "Max-Forwards: 70\r\n"
     "From: <sip:%s>;tag=djaiefkla348afikju3u9dkhjk3\r\n"
     "To: <sip:%s>\r\n"
-    "Call-ID: jfköajbsödkivha@192.168.178.62\r\n"
-    "CSeq: 102 OPTIONS\r\n"
+    "Call-ID: jfkdajbs32dkivha@192.168.178.62\r\n"
+    "CSeq: 1082 OPTIONS\r\n"
     "Contact: <sip:+4919952000234234@192.168.178.62:5060;transport=tcp>\r\n"
     "Supported: 100rel,timer,histinfo\r\n"
     "User-Agent: Dennis-Test\r\n"
