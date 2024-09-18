@@ -1,12 +1,65 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/select.h>
 
-typedef struct {
-    char header_name[64];
-    char new_value[128];
-} HeaderManipulation;
+#define IP_PORT "10800"
+
+void load_config(char *ip_address_ext, char *ip_port_ext, char *ip_port_int){
+    FILE *config = fopen("./config.txt", "r"); 
+    if (config == NULL) {
+        printf("Unable to read config-file. Standard-values are used.\n"); 
+        return;
+    }
+
+    char line[128];
+    while (fgets(line, sizeof(line), config)) {
+        if (strncmp(line, "IP_ADDRESS_EXT", 14) == 0) {
+            sscanf(line, "IP_ADDRESS_EXT=%s", ip_address_ext);
+        }else if (strncmp(line, "IP_PORT_INT", 11) == 0) {
+            sscanf(line, "IP_PORT_INT=%s", ip_port_int);
+        }else if (strncmp(line, "IP_PORT_EXT", 11) == 0) {
+            sscanf(line, "IP_PORT_EXT=%s", ip_port_ext);
+        }
+    }
+    fclose(config);
+}
 
 int main() {
+    int i = 0; 
+    while (1) {
+        printf("%d. Warte 5 Sec\n", i++);
+        sleep(5); 
+        printf("5 Sekunden gewartet\n"); 
+    }
+
+    return 0;
+}
+
+
+/*
+    HeaderManipulation modifications[] = {
+        {"From,", "<sip:+49931333031@tel.t-online.de>;tag=asdfjkl3j1"},
+        {"To", "<sip:+4915153710510@tel.t-online.de>"},
+        {"Call-ID", "dkjlasdjoiujlkajdfkjh@192.168.178.54"},
+        {"Contact", "<sip:+49199620000001598735@192.168.178.54:5060;transport=tcp>"}
+    };
+
+    char *name = modifications[0].header_name;
+
+    if (strchr(modifications[0].header_name, ',') != NULL){
+        printf(", gefunden"); 
+    }
+    name[strlen(name)-1] = '\0';
+    strcpy(modifications[0].header_name, name);
+    printf("%s\n", modifications[0].header_name);*/
+
+
+
+//Analyse von Copieren, verschieben und ersetzen: 
+/*
     char buffer[1024];
 
     snprintf(buffer, 1024,
@@ -47,34 +100,34 @@ int main() {
     size_t len_new_value = strlen(value); 
     printf("%s%ld", value, len_new_value);
 
-/*    char str[] = "Hallo Welt!"; 
+    char str[] = "Hallo Welt!"; 
     size_t hello_len1 = strlen(str); 
     printf("Vorher: %s\nLen: %ld\n", str, hello_len1); 
     memmove(str + 6, str, 5); 
     size_t hello_len2 = strlen(str); 
     printf("Nachher: %s\nLen: %ld\n", str, hello_len2); 
-*/
+
     //printf("---------------------------\n");
     size_t len = strlen(buffer); 
-    //printf("%sLen: %ld\n", buffer, len);
-
-    return 0;
-}
-
+    //printf("%sLen: %ld\n", buffer, len);*/
 
 /*
-    HeaderManipulation modifications[] = {
-        {"From,", "<sip:+49931333031@tel.t-online.de>;tag=asdfjkl3j1"},
-        {"To", "<sip:+4915153710510@tel.t-online.de>"},
-        {"Call-ID", "dkjlasdjoiujlkajdfkjh@192.168.178.54"},
-        {"Contact", "<sip:+49199620000001598735@192.168.178.54:5060;transport=tcp>"}
-    };
+    char                ip_addr_ext[16] = "127.0.0.1";
+    char                ip_port_ext[6]  = "10000";
+    char                ip_port_int[6]  = "30800";
+    struct sockaddr_in  sockaddr;
 
-    char *name = modifications[0].header_name;
+    size_t port_len = sizeof(ip_port_ext);
+    printf("Len Port before: %ld\n", port_len);
+    //load_config(ip_addr_ext, ip_port_ext, ip_port_int);
+    //size_t port_len_af = sizeof(ip_port_ext); 
+    //printf("Len Port after: %ld\n", port_len_af); 
+    
+    memset(&sockaddr, 0x00, sizeof(sockaddr));
+    sockaddr.sin_family = AF_INET;
+    sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sockaddr.sin_port = htons(atoi(IP_PORT));
 
-    if (strchr(modifications[0].header_name, ',') != NULL){
-        printf(", gefunden"); 
-    }
-    name[strlen(name)-1] = '\0';
-    strcpy(modifications[0].header_name, name);
-    printf("%s\n", modifications[0].header_name);*/
+    printf("%d\n", sockaddr.sin_port);
+
+*/

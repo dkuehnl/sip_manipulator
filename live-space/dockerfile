@@ -1,20 +1,23 @@
 #Building
-FROM gcc:latest AS build 
+FROM gcc:latest
+
+RUN apt-get update && apt-get install -y \
+    libncurses5-dev\
+    libncursesw5-dev\
+    nano\
+    iproute2 &&\
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 #Docker-Arbeitsverzeichnis
 WORKDIR /usr/src/app
-
 COPY . . 
 
 #Binary erstellen
-RUN gcc -o sip-manipulator main.c 
+RUN gcc -o sip-manipulator main.c manipulator-function.c log.c -lncurses
 
-#Minimal-Image erstellen
-FROM gcc:latest
+COPY /usr/src/app/sip-manipulator /usr/local/bin/sip-manipulator
+COPY hmr.txt config.txt /usr/src/app/
 
 
-COPY --from=build /usr/src/app/sip-manipulator /usr/local/bin/sip-manipulator
-COPY hmr.txt /usr/local/bin/hmr.txt
-
-CMD ["/usr/local/bin/sip-manipulator"]
+CMD ["./sip-manipulator"]
 
