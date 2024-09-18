@@ -103,6 +103,7 @@ int main() {
     //Building Menu-Window
     initscr(); 
     clear(); 
+    raw();
     noecho(); 
     cbreak(); 
     curs_set(0); 
