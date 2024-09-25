@@ -1,4 +1,0 @@
-From, <sip:+xxxxxxxxxx@tel.t-online.de>;tag=asdfjkl3j1
-To, <sip:+4915153710510@tel.t-online.de>
-Call-ID dkjlasdjoiujlkajdfkjh@192.168.178.54
-Contact, <sip:+49199620000001598735@192.168.178.54:5060;transport=tcp>

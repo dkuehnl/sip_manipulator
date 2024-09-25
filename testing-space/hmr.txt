@@ -1,3 +1,0 @@
-From, <sip:let>;tag=djaiefkla348afikju3u9dkhjk3
-To, <sip:let>
-

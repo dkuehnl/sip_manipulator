@@ -1,0 +1,23 @@
+#Building
+FROM gcc:latest
+
+RUN apt-get update && apt-get install -y \
+    libncurses5-dev\
+    libncursesw5-dev\
+    nano\
+    iproute2\
+    tmux
+
+#Docker-Arbeitsverzeichnis
+WORKDIR /usr/src/app
+COPY . . 
+
+#Binary erstellen
+RUN gcc -o menu menu/main.c menu/process_handling.c shared/log.c -I/shared/include -lncurses
+RUN gcc -o manipulator server/main.c server/hmr.c shared/log.c -I/shared/include
+
+
+COPY config.txt /usr/src/app/
+
+CMD ["sleep", "infinity"]
+
