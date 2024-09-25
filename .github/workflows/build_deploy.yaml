@@ -19,7 +19,7 @@ jobs:
       - name: Build Docker-Image
         run: |
           #Hole Tag bzw. verwende latest
-          TAG=$(grep 'VERSION=' ./live-space/.env | cut -d '=' -f2)
+          TAG=$(grep 'VERSION=' ./live-space/shared/.env | cut -d '=' -f2)
           if [ -z "$TAG" ]; then TAG=latest; fi
           #Image bauen
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/sip-manipulator:$TAG ./live-space/
@@ -27,7 +27,7 @@ jobs:
 
       - name: Push to Docker-Hub
         run: |
-          TAG=$(grep 'VERSION=' ./live-space/.env | cut -d '=' -f2)
+          TAG=$(grep 'VERSION=' ./live-space/shared/.env | cut -d '=' -f2)
           if [ -z "$TAG" ]; then TAG=latest; fi
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/sip-manipulator:$TAG
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/sip-manipulator:latest
