@@ -13,10 +13,11 @@ WORKDIR /usr/src/app
 COPY . . 
 
 #Binary erstellen
-RUN gcc -o manipulator main_manipulator.c log.c
-RUN gcc -o menu main_menu.c log.c -lncurses
+RUN gcc -o menu menu/main.c menu/process_handling.c shared/log.c -I/shared/include -lncurses
+RUN gcc -o manipulator server/main.c server/hmr.c shared/log.c -I/shared/include
 
-COPY hmr.txt config.txt /usr/src/app/
+
+COPY config.txt /usr/src/app/
 
 CMD ["sleep", "infinity"]
 
