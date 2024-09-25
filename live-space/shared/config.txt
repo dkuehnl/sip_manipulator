@@ -15,7 +15,7 @@ MAIN_LOG=/usr/src/app/log_main.txt
 MAIN_SIP_MAN=/usr/src/app/log_manipulator.txt
 
 #HMR-Location
-HMR_PATH=/usr/src/app/hmr.txt
+HMR_PATH=/usr/src/app/shared/hmr.txt
 
 #Server-Binary
 SIP_BIN=/usr/src/app/manipulator
