@@ -1,9 +1,11 @@
 .vscode/
 
-testing-space/build
 live-space/build
+live-space/shared/log_*
 
-live-space/log_*
-
-live-space/manipulator
-live-space/window
+testing-space/build
+testing-space/project/menu/test
+testing-space/project/menu/build
+testing-space/project/server/manipulator
+testing-space/project/shared/build
+testing-space/project/shared/log_*

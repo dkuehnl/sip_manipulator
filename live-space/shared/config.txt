@@ -1,0 +1,23 @@
+#This is the config-file for the SIP-Manipulator by Dennis Kühnlein
+#Every line beginning with # and empty lines will be ommited
+#Introducing new config-items without having access to the source-code will cause undefined behavior
+
+#Current Version: 
+VERSION=2.5
+
+#TCP/IP Config
+IP_ADDRESS_EXT=217.0.149.240
+IP_PORT_INT=5060
+IP_PORT_EXT=5060
+
+#Logfiles
+MAIN_LOG=../shared/log_main.txt
+MAIN_SIP_MAN=../shared/log_manipulator.txt
+
+#HMR-Location
+HMR_PATH=../shared/hmr.txt
+
+#Server-Binary
+SIP_BIN=../server/manipulator
+#Mirroring data (1=true,0=false)
+MIRROR=0
