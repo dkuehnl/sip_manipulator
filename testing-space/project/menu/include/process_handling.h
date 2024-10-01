@@ -11,7 +11,7 @@ int terminate_process(const int pid, char *logfile);
 int start_nano(const char *filename, char *logfile);
 int start_external_process(const char *choice, const char *filename, char *logfile);
 void stop_sip_server(char *logfile);
-
+int send_sighup(char *logfile); 
 
 
 #endif

@@ -4,6 +4,8 @@ live-space/build
 live-space/shared/log_*
 
 testing-space/build
+testing-space/test_sip
+testing-space/test-sender
 testing-space/project/menu/test
 testing-space/project/menu/build
 testing-space/project/server/manipulator

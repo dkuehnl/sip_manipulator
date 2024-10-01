@@ -6,6 +6,11 @@
 #include <sys/select.h>
 #include <signal.h>
 #include <time.h>
+#include <osip2/osip.h>
+#include <osipparser2/osip_const.h>
+#include <osipparser2/osip_headers.h>
+#include <osipparser2/osip_body.h>
+#include <osipparser2/osip_message.h>
 
 #define IP_PORT "10800"
 
@@ -29,7 +34,7 @@ ManipulationTable *load_hmr(const char *hmr_path){
     FILE *hmr = fopen(hmr_path, "r"); 
     if (hmr == NULL) {
         printf("Error while reading file\n"); 
-        return;
+        return table;
     }
     char line[256];
     ManipulationEntry currentEntry = {0};
@@ -73,24 +78,120 @@ ManipulationTable *load_hmr(const char *hmr_path){
 
 void create_sip_option(char *buffer, const char *pcscf) {
     snprintf(buffer, 1024,
-    "QUATSCH sip:%s:5060;transport=TCP SIP/2.0\r\n"
+    "OPTIONS sip:test@tel.t-online.de SIP/2.0\r\n"
     "Via: SIP/2.0/TCP 192.168.178.62:5060;branch=z9hG4bK776asdhdsdafdsf674\r\n"
+    "Via: SIP/2.0/TCP 192.168.178.1:5060;branch=z9hG4bK776asdhdsdafdsf674\r\n"
+    "Via: SIP/2.0/TCP 8.8.8.8:5060;branch=z9hG4bK776asdhdsdafdsf674\r\n"
     "Max-Forwards: 70\r\n"
-    "From: <sip:%s>;tag=djaiefkla348afikju3u9dkhjk3\r\n"
+    "From: <sip:+49789554324564@192.168.178.5>;tag=djaiefkla348afikju3u9dkhjk3\r\n"
     "To: <sip:%s>\r\n"
+    "X-Erricson: Test\r\n"
+    "P-Asserted-Identity: <sip:+49123456@tel.t-online.de;user=phone>\r\n"
     "Call-ID: jfkdajbs32dkivha@192.168.178.62\r\n"
     "CSeq: 1082 OPTIONS\r\n"
     "Contact: <sip:+4919952000234234@192.168.178.62:5060;transport=tcp>\r\n"
     "Supported: 100rel,timer,histinfo\r\n"
     "User-Agent: Dennis-Test\r\n"
     "Allow: INVITE, ACK, CANCEL, OPTIONS, BYE\r\n"
-    "Content-Length: 0\r\n"
-    "\r\n",
-    pcscf, pcscf, pcscf
+    "Content-Length: 0\r\n\r\n",
+    pcscf
     );
 }
 
-int classify_message(const char *buffer, ManipulationTable *table){
+void manipulate_existing_header(char *buffer, ManipulationEntry entries) {
+    osip_t *osip;
+    if (osip_init(&osip)!=0) {
+        return;
+    }
+    
+    osip_message_t *sip; 
+    osip_message_init(&sip);
+    if (osip_message_parse(sip, buffer, strlen(buffer))!=0){
+        printf("Error while parsing\n");
+        return;
+    }
+
+    for (int i = 0; i < entries.count; i++){
+        if (strncmp(entries.headers[i], "From", 4) == 0) {
+            if (strncmp(entries.new_values[i], " host", 5) == 0){
+                sip->from->url->host = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " user", 5) == 0) {
+                sip->from->url->username = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " scheme", 7) == 0){
+                sip->from->url->scheme = strchr(entries.new_values[i], ':')+1;
+            }
+        } else if (strncmp(entries.headers[i], "To", 2) == 0) {
+            if (strncmp(entries.new_values[i], " host", 5) == 0){
+                sip->to->url->host = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " user", 5) == 0) {
+                sip->to->url->username = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " scheme", 7) == 0){
+                sip->to->url->scheme = strchr(entries.new_values[i], ':')+1;
+            }
+        } else if (strncmp(entries.headers[i], "Call-ID", 7) == 0) {
+            if (strncmp(entries.new_values[i], " host", 5) == 0){
+                sip->call_id->host = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " number", 7) == 0) {
+                sip->call_id->number = strchr(entries.new_values[i], ':')+1;
+            }
+        } else if (strncmp(entries.headers[i], "Contact", 7) == 0) {
+            osip_contact_t *contact;
+            osip_message_get_contact(sip, 0, &contact);
+            if (strncmp(entries.new_values[i], " scheme", 7) == 0){
+                contact->url->scheme = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " user", 5) == 0) {
+                contact->url->username = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " host", 5) == 0) {
+                contact->url->host = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " port", 5) == 0) {
+                contact->url->port = strchr(entries.new_values[i], ':')+1;
+            }
+        } else if (strncmp(entries.headers[i], "CSeq", 7) == 0) {
+            if (strncmp(entries.new_values[i], " number", 7) == 0){
+                sip->cseq->number = strchr(entries.new_values[i], ':')+1;
+            } else if (strncmp(entries.new_values[i], " method", 7) == 0) {
+                sip->cseq->method = strchr(entries.new_values[i], ':')+1;
+            }
+        } else if (strncmp(entries.headers[i], "Via", 7) == 0) {
+            continue;
+        } else {
+            osip_header_t *header;
+            if (osip_message_header_get_byname(sip, entries.headers[i], 0, &header) >  0){
+                if (strncmp(entries.new_values[i], " del", 4) == 0) {
+                    osip_header_t *curr_header;
+                    int pos = 0;
+
+                    while (!osip_list_eol(&sip->headers, pos)) {
+                        curr_header = (osip_header_t *)osip_list_get(&sip->headers, pos);
+                        if (curr_header == header) {
+                            osip_list_remove(&sip->headers, pos);
+                            break;
+                        }
+                        pos++;
+                    }
+                } else {
+                    header->hvalue = entries.new_values[i];
+                }
+            } else {
+                if (strncmp(entries.new_values[i], " add", 4) == 0) {
+                    osip_message_set_header(sip, entries.headers[i], strchr(entries.new_values[i], ':')+1);
+                } 
+            }
+        }
+    }
+
+    if (MSG_IS_OPTIONS(sip)) {
+        osip_message_set_header(sip, "X-Timestamp", "11:11:11"); 
+    }
+
+    char *dest = NULL; 
+    size_t length; 
+    osip_message_to_str(sip, &dest, &length);
+    strcpy(buffer, dest); 
+
+}
+
+int classify_message(char *buffer, ManipulationTable *table){
     char tmp[1024];
     strcpy(tmp, buffer);
     char *r_uri_end = strstr(tmp, "\r\n"); 
@@ -98,17 +199,11 @@ int classify_message(const char *buffer, ManipulationTable *table){
 
     for (int i = 0; i < table->count; i++) {
         if(strncmp(tmp, table->entries[i].message_type, strlen(table->entries[i].message_type)) == 0){
-            printf("%s\n", tmp); 
-            printf("Following Manipulation will apply: \n"); 
-            printf("Type: %s (%d Entries)\n", table->entries[i].message_type, table->entries[i].count);
-            for (int j = 0; j < table->entries[i].count; j++) {
-                printf("\tHeader: %s\n\tValue: %s\n", table->entries[i].headers[j], table->entries[i].new_values[j]);
-            }
+            manipulate_existing_header(buffer, table->entries[i]);
             return 0;
         }
     }
-    return 1;
-        
+    return 1;     
 }
 
 void print_hmr_table(ManipulationTable *table) {
@@ -127,14 +222,14 @@ int main() {
     char    pcscf[] = "217.0.146.197";
 
     create_sip_option(buffer, pcscf);
+    printf("Sizeof buffer: %ld\n", strlen(buffer)); 
     ManipulationTable *table = load_hmr("./project/shared/hmr.txt");
-    if (classify_message(buffer, table) == 0){
-        printf("Manipulation found\n"); 
-    } else {
-        printf("No Manipulation-Rule found\n");
+    if (classify_message(buffer, table) == 0) {
+        printf("Manipulierte Message:\n%s", buffer);
     }
     
-
+    printf("Keine Manipulation durchgeführt\n"); 
+    
     return 0;
 }
 

@@ -3,7 +3,7 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.0
+VERSION=3.2
 
 #TCP/IP Config
 IP_ADDRESS_EXT=217.0.149.240
@@ -12,10 +12,13 @@ IP_PORT_EXT=5060
 
 #Logfiles
 MAIN_LOG=../shared/log_main.txt
-MAIN_SIP_MAN=../shared/log_manipulator.txt
+MAIN_SIP_LOG=../shared/log_manipulator.txt
+HMR_LOG=../shared/log_hmr.txt
 
 #HMR-Location
-HMR_PATH=../shared/hmr.txt
+INC_HMR_PATH=../shared/inc_hmr.txt
+OUT_HMR_PATH=../shared/out_hmr.txt
+MIR_HMR_PATH=../shared/mirror_hmr.txt
 
 #Server-Binary
 SIP_BIN=../server/manipulator

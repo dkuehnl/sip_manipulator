@@ -8,12 +8,26 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include "../shared/include/log.h"
 #include "./include/hmr.h"
 
 #define GLOBAL_CONFIG_PATH "/usr/src/app/config.txt"
 
+//Globale Filepaths: 
+char                int_hmr_path[64];
+char                ext_hmr_path[64];
+char                mir_hmr_path[64];
+char                sip_man_log[64];
+char                sip_hmr_log[64];
+ManipulationTable   *int_modification_table = NULL;
+ManipulationTable   *ext_modification_table = NULL;
+ManipulationTable   *mir_modification_table = NULL;
+
+int                 sockfd, connfd, sockfd_ext;
+
+//Function-Declaration:
 ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
     ManipulationTable *table = malloc(sizeof(ManipulationTable));
     table->entries = NULL;
@@ -63,7 +77,7 @@ ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){
     return table;
 }
 
-void load_main_config(char *version, char *sip_man_log, char *hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror){
+void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char *int_hmr_path, char *ext_hmr_path, char *mir_hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror){
     FILE *config = fopen(GLOBAL_CONFIG_PATH, "r");
     if (config == NULL) {
         printf("CRITIC: Config-File could not be opened!\n");
@@ -78,18 +92,61 @@ void load_main_config(char *version, char *sip_man_log, char *hmr_path, char *ip
             sscanf(line, "IP_PORT_INT=%s", ip_port_int);
         }else if (strncmp(line, "IP_PORT_EXT", 11) == 0) {
             sscanf(line, "IP_PORT_EXT=%s", ip_port_ext);
-        }else if (strncmp(line, "MAIN_SIP_MAN", 12) == 0) {
-            sscanf(line, "MAIN_SIP_MAN=%s", sip_man_log); 
+        }else if (strncmp(line, "MAIN_SIP_LOG", 12) == 0) {
+            sscanf(line, "MAIN_SIP_LOG=%s", sip_man_log); 
+        } else if (strncmp(line, "HMR_LOG", 7) == 0) {
+            sscanf(line, "HMR_LOG=%s", sip_hmr_log);   
         } else if (strncmp(line, "VERSION", 7) == 0) {
             sscanf(line, "VERSION=%s", version); 
-        } else if (strncmp(line, "HMR_PATH", 8) == 0) {
-            sscanf(line, "HMR_PATH=%s", hmr_path);
+        } else if (strncmp(line, "INC_HMR_PATH", 12) == 0) {
+            sscanf(line, "INC_HMR_PATH=%s", int_hmr_path);
+        } else if (strncmp(line, "OUT_HMR_PATH", 12) == 0) {
+            sscanf(line, "OUT_HMR_PATH=%s", ext_hmr_path);  
+        } else if (strncmp(line, "MIR_HMR_PATH", 12) == 0) {
+            sscanf(line, "MIR_HMR_PATH=%s", mir_hmr_path); 
         } else if (strncmp(line, "MIRROR", 6) == 0) {
             sscanf(line, "MIRROR=%d", mirror);
         }
     }
     fclose(config);
 }
+
+//Signal-Handler: 
+void sighandler_mirror() {
+    error_msg(sip_man_log, "Incoming SIGHUP, reloading HMR");
+    mir_modification_table = load_hmr(mir_hmr_path, sip_man_log); 
+    if (mir_modification_table == NULL) {
+        error_msg(sip_man_log, "ERROR MAIN: MIR_HMR could not be loaded."); 
+    }
+    error_msg(sip_man_log, "HMR reloaded finished");
+}
+
+void sighandler_no_mirror() {
+    error_msg(sip_man_log, "Incoming SIGHUP, reloading HMR");
+    int_modification_table = load_hmr(int_hmr_path, sip_man_log);
+    if (int_modification_table == NULL) {
+        error_msg(sip_man_log, "ERROR MAIN: INC_HMR could not be loaded."); 
+    }
+    ext_modification_table = load_hmr(ext_hmr_path, sip_man_log); 
+    if (ext_modification_table == NULL) {
+        error_msg(sip_man_log, "ERROR MAIN: OUT_HMR could not be loaded."); 
+    }
+    error_msg(sip_man_log, "HMR reloaded finished"); 
+}
+
+void handle_sigterm() {
+    error_msg(sip_man_log, "Received SIGTERM, waiting 30 seconds before closing everything."); 
+    sleep(30);
+
+    error_msg(sip_man_log, "Closing all sockets.");
+    close(connfd); 
+    close(sockfd); 
+    close(sockfd_ext);
+
+    error_msg(sip_man_log, "Terminating Server by SIGTERM"); 
+    exit(0); 
+}
+
 
 int main()
 {
@@ -99,22 +156,21 @@ int main()
     char                buffer[2048];
     int                 rv, rv_ext;
     struct timeval      timeout;
+    struct sigaction    sa;
 
     //Default-Values (overwritten by config-file)
     char                ip_addr_ext[16] = "127.0.0.1";
     char                ip_port_ext[6]  = "10000";
     char                ip_port_int[6]  = "5060";
-    char                sip_man_log[64];
     char                version[8];
-    char                hmr_path[64];
-    char                tmp[128];
+    char                tmp[2048];
     int                 mirror = 0;
 
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
         printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
-    load_main_config(version, sip_man_log, hmr_path, ip_addr_ext, ip_port_ext, ip_port_int, &mirror); 
+    load_main_config(version, sip_man_log, sip_hmr_log, int_hmr_path, ext_hmr_path, mir_hmr_path, ip_addr_ext, ip_port_ext, ip_port_int, &mirror); 
 
     //Start Logging
     snprintf(tmp, sizeof(tmp), "\nSIP-Manipulator v%s startet.", version);
@@ -124,7 +180,28 @@ int main()
     error_msg(sip_man_log, tmp);
     if (mirror == 1){
         error_msg(sip_man_log, "Acting as Mirror");
+        sa.sa_handler = sighandler_mirror;
+        sa.sa_flags = 0; 
+        sigemptyset(&sa.sa_mask);
+        if (sigaction(SIGHUP, &sa, NULL) == -1){
+            error_msg(sip_man_log, "ERROR MAIN: SIG-Handler could not be initialized.");
+            exit(EXIT_FAILURE); 
+        } else {
+            error_msg(sip_man_log, "INFO: SIG-Handler established.");
+        }
+    } else if (mirror == 0){
+        error_msg(sip_man_log, "Acting as Proxy"); 
+        sa.sa_handler = sighandler_no_mirror;
+        sa.sa_flags = 0; 
+        sigemptyset(&sa.sa_mask); 
+        if (sigaction(SIGHUP, &sa, NULL) == -1){
+            error_msg(sip_man_log, "ERROR MAIN: SIG-Handler could not be initialized."); 
+            exit(EXIT_FAILURE); 
+        } else {
+            error_msg(sip_man_log, "INFO: SIG-Handler established."); 
+        }
     }
+    signal(SIGTERM, handle_sigterm); 
 
     //create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -159,19 +236,24 @@ int main()
         error_msg(sip_man_log, "Server listening ...");
 
     //Load HMR's
-    ManipulationTable *modification_table = load_hmr(hmr_path, sip_man_log);
-    if (modification_table == NULL) {
-        error_msg(sip_man_log, "ERROR MAIN: HMR could not be loaded."); 
-        //exit(EXIT_FAILURE);
-    }
-
-    //Define Timeout: 
-    timeout.tv_sec = 30;
-    timeout.tv_usec = 0;
-    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0){
-        error_msg(sip_man_log, "ERROR MAIN: Problem with timeout-creation"); 
-        close(sockfd); 
-        exit(EXIT_FAILURE); 
+    if (mirror == 0) {
+        int_modification_table = load_hmr(int_hmr_path, sip_man_log);
+        if (int_modification_table == NULL) {
+            error_msg(sip_man_log, "ERROR MAIN: INC_HMR could not be loaded."); 
+        }
+        ext_modification_table = load_hmr(ext_hmr_path, sip_man_log); 
+        if (ext_modification_table == NULL) {
+            error_msg(sip_man_log, "ERROR MAIN: OUT_HMR could not be loaded."); 
+        }
+    } else if (mirror == 1) {
+        mir_modification_table = load_hmr(mir_hmr_path, sip_man_log); 
+        if (mir_modification_table == NULL) {
+            error_msg(sip_man_log, "ERROR MAIN: MIR_HMR could not be loaded."); 
+        }
+    } else {
+        error_msg(sip_man_log, "ERROR MAIN: No HMR-File loaded, shutdown now.");
+        close(sockfd);
+        exit(EXIT_FAILURE);
     }
 
     //server loop
@@ -236,26 +318,30 @@ int main()
                 error_msg(sip_man_log, tmp);
 
 
-            process_buffer(buffer, modification_table, sip_man_log);
-
             if (mirror == 0) {
+                process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
                 rv_ext = write(sockfd_ext, buffer, strlen(buffer));
                 snprintf(tmp, sizeof(tmp), "Transmitted Buffer:\n%s", buffer);
-                error_msg(sip_man_log, tmp);
+                error_msg(sip_hmr_log, tmp);
                 memset(buffer, 0, sizeof(buffer));
+
                 rv_ext = read(sockfd_ext, buffer, sizeof(buffer));
                 snprintf(tmp, sizeof(tmp), "%i bytes of data received from external server", rv_ext);
                 error_msg(sip_man_log, tmp);
+                
+                process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
+                rv = write(connfd, buffer, sizeof(buffer));
+                snprintf(tmp, sizeof(tmp), "Transmitted Buffer:\n%s", buffer);
+                error_msg(sip_hmr_log, tmp); 
+            } else if (mirror == 1) {
+                process_buffer(buffer, mir_modification_table, sip_man_log, sip_hmr_log);
+                snprintf(tmp, sizeof(tmp), "Mirror: MIR-Modification applied:\n'%s'", buffer);
+                error_msg(sip_hmr_log, tmp); 
+                rv = write(connfd, buffer, sizeof(buffer));
             }
-
-            rv = write(connfd, buffer, sizeof(buffer));
-            snprintf(tmp, sizeof(tmp), "Transmitted Buffer:\n%s", buffer);
-            error_msg(sip_man_log, tmp); 
         }
     }
 
-    error_msg(sip_man_log, "INFO: Stop-Signal from main-application detected");
-    close(sockfd); 
-
     return 0;
 }
+

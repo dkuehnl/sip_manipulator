@@ -146,3 +146,22 @@ void stop_sip_server(char *logfile) {
         mvprintw(LINES -3, 0, "> Server currently not running\n"); 
     }
 }
+
+int send_sighup(char *logfile) {
+    char command[64];
+    int pid = get_pid("manipulator", logfile);
+
+    if (pid == 0) {
+        error_msg(logfile, "No Server-Process (manipulator) found.");
+        return -1;
+    }
+
+    int result = kill(pid, SIGHUP); 
+    if (result == -1) {
+        error_msg(logfile, "Failed to send SIGHUP");
+        return -1;
+    } 
+
+    error_msg(logfile, "SIGHUP send"); 
+    return 0;
+}
