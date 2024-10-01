@@ -13,6 +13,6 @@ typedef struct {
     int count;
 } ManipulationTable;
 
-void process_buffer(char *sip_message, ManipulationTable *modification_table, char *sip_man_log);
+void process_buffer(char *sip_message, ManipulationTable *modification_table, char *sip_man_log, char *sip_hmr_log);
 
 #endif

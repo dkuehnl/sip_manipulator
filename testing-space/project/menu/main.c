@@ -36,7 +36,7 @@ void print_menu(WINDOW *menu_win, int highlight, char *choices[], int n_choices)
     wrefresh(menu_win);
 }
 
-void load_main_config(char *version, char *main_log, char *sip_man_log, char *hmr_path, char *sip_bin_path) {
+void load_main_config(char *version, char *main_log, char *sip_server_log, char *sip_hmr_log, char *inc_hmr_path, char *out_hmr_path, char *mir_hmr_path,char *sip_bin_path) {
     FILE *config = fopen(GLOBAL_CONFIG_PATH, "r");
     if (config == NULL) {
         printf("CRITIC: Config-File could not be opened!\n");
@@ -45,18 +45,23 @@ void load_main_config(char *version, char *main_log, char *sip_man_log, char *hm
 
     char line[128];
     while(fgets(line, sizeof(line), config)) {
-        printf("%s", line); 
         if (line[0] == '#' || line[0] == '\n') {
             continue;
         } else {
             if (strncmp(line, "MAIN_LOG", 8) == 0) {
                 sscanf(line, "MAIN_LOG=%s", main_log); 
-            } else if (strncmp(line, "MAIN_SIP_MAN", 12) == 0) {
-                sscanf(line, "MAIN_SIP_MAN=%s", sip_man_log); 
-            } else if (strncmp(line, "VERSION", 7) == 0) {
+            } else if (strncmp(line, "MAIN_SIP_LOG", 12) == 0) {
+                sscanf(line, "MAIN_SIP_LOG=%s", sip_server_log); 
+            } else if (strncmp(line, "HMR_LOG", 7) == 0) {
+                sscanf(line, "HMR_LOG=%s", sip_hmr_log);  
+            }else if (strncmp(line, "VERSION", 7) == 0) {
                 sscanf(line, "VERSION=%s", version); 
-            } else if (strncmp(line, "HMR_PATH", 8) == 0) {
-                sscanf(line, "HMR_PATH=%s", hmr_path);
+            } else if (strncmp(line, "INC_HMR_PATH", 12) == 0) {
+                sscanf(line, "INC_HMR_PATH=%s", inc_hmr_path);
+            } else if (strncmp(line, "OUT_HMR_PATH", 12) == 0) {
+                sscanf(line, "OUT_HMR_PATH=%s", out_hmr_path);  
+            } else if (strncmp(line, "MIR_HMR_PATH", 12) == 0) {
+                sscanf(line, "MIR_HMR_PATH=%s", mir_hmr_path); 
             } else if (strncmp(line,"SIP_BIN", 7) == 0) {
                 sscanf(line, "SIP_BIN=%s", sip_bin_path);
             }
@@ -75,7 +80,10 @@ int main() {
     char *choices[] = {
         "Start Manipulation-Server", 
         "Stop Server", 
-        "Edit HMR", 
+        "Edit INC-HMR", 
+        "Edit OUT-HMR", 
+        "Edit MIR-HMW", 
+        "Push HMR to Server",
         "Change Settings", 
         "Exit",
     };
@@ -89,16 +97,21 @@ int main() {
     }
 
     char    main_log[64];
-    char    sip_man_log[64];
+    char    sip_server_log[64];
+    char    sip_hmr_log[64];
     char    version[8];
-    char    hmr_path[64];
+    char    inc_hmr_path[64];
+    char    out_hmr_path[64];
+    char    mir_hmr_path[64];
     char    sip_bin_path[64];
 
-    load_main_config(version, main_log, sip_man_log, hmr_path, sip_bin_path); 
+    load_main_config(version, main_log, sip_server_log, sip_hmr_log, inc_hmr_path, out_hmr_path, mir_hmr_path, sip_bin_path); 
     check_logfile(main_log);
-    check_logfile(sip_man_log);
-    check_file(hmr_path, main_log);
-
+    check_logfile(sip_server_log);
+    check_logfile(sip_hmr_log);
+    check_file(inc_hmr_path, main_log);
+    check_file(out_hmr_path, main_log);
+    check_file(mir_hmr_path, main_log);
     //Building Menu-Window
     initscr(); 
     clear(); 
@@ -114,6 +127,7 @@ int main() {
     if (get_pid("manipulator", main_log) != 0) {
         server_running = true;
         mvprintw(LINES - 2, 0, "Server currently running.\n"); 
+        refresh();
     }
 
     while(1) {
@@ -146,7 +160,7 @@ int main() {
         }
 
         if (choice != 0) {
-            if (choice == 5) {
+            if (choice == 8) {
                 clear(); 
                 mvprintw(LINES -2, 0, "Exiting..."); 
                 refresh(); 
@@ -182,16 +196,50 @@ int main() {
             } else if (choice == 3){
                 //Edit HMR
                 clear();
-                mvprintw(LINES -2, 0, "Starting Editor for HMR\n"); 
+                mvprintw(LINES -2, 0, "Starting Editor for INC-HMR\n"); 
                 refresh(); 
                 sleep(3); 
-                start_external_process("HMR", hmr_path, main_log); 
+                start_external_process("HMR", inc_hmr_path, main_log); 
                 clear();
                 print_menu(menu_win, highlight, choices, n_choiches);
                 mvprintw(LINES -2, 0, "Editor closed\n"); 
                 refresh();
                 choice = 0; 
-            } else if (choice == 4){
+            } else if (choice == 4) {
+                clear(); 
+                mvprintw(LINES -2, 0, "Starting Editor for OUT-HMR\n");
+                refresh(); 
+                sleep(3); 
+                start_external_process("HMR", out_hmr_path, main_log); 
+                clear();
+                print_menu(menu_win, highlight, choices, n_choiches);
+                mvprintw(LINES -2, 0, "Editor closed\n"); 
+                refresh();
+                choice = 0;
+            } else if (choice == 5) {
+                clear(); 
+                mvprintw(LINES -2, 0, "Starting Editor for MIR-HMR\n");
+                refresh(); 
+                sleep(3); 
+                start_external_process("HMR", mir_hmr_path, main_log); 
+                clear();
+                print_menu(menu_win, highlight, choices, n_choiches);
+                mvprintw(LINES -2, 0, "Editor closed\n"); 
+                refresh();
+                choice = 0;
+            } else if (choice == 6) {
+                mvprintw(LINES -2, 0, "Pushing new HMR to Server\n"); 
+                refresh(); 
+                if (send_sighup(main_log) == 0) {
+                    clear(); 
+                    mvprintw(LINES -2, 0, "SIGHUP sent to Server\n"); 
+                    refresh(); 
+                } else {
+                    mvprintw(LINES -2, 0, "Error while pushing to Server\n"); 
+                    refresh(); 
+                }
+                choice = 0; 
+            } else if (choice == 7){
                 //Edit Config
                 clear();
                 mvprintw(LINES -2, 0, "Starting Editor for Config\n"); 
@@ -211,6 +259,7 @@ int main() {
             }
         }
     }
+
 
     endwin();
     return 0; 

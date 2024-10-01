@@ -1,20 +1,26 @@
 #include <time.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <string.h>
 
 #include "include/log.h"
 
 char* get_timestamp(){
-    time_t rawtime; 
+    struct timeval tv;
     struct tm *timeinfo;
     static char timeString[100];
+    char msec_buffer[8];
+    gettimeofday(&tv, NULL);
+    timeinfo = localtime(&tv.tv_sec);
 
-    time(&rawtime); 
-    timeinfo = localtime(&rawtime); 
-    strftime(timeString, sizeof(timeString), "%d-%m-%Y %H:%M", timeinfo);
+    strftime(timeString, sizeof(timeString), "%d-%m-%Y %H:%M:%S", timeinfo);
+    snprintf(msec_buffer, sizeof(msec_buffer), ".%03ld", tv.tv_usec / 1000);
+    strcat(timeString, msec_buffer);
 
     return timeString;
 }
+
 
 void error_msg(char *logfile, char *error_msg) {
     FILE *file = fopen(logfile, "a"); 
