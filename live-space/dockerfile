@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y \
     libncursesw5-dev\
     nano\
     iproute2\
-    tmux
+    tmux\
+    libosip2-dev
 
 #Docker-Arbeitsverzeichnis
 WORKDIR /usr/src/app
@@ -15,7 +16,7 @@ COPY . .
 RUN ls -R /usr/src/app
 #Binary erstellen
 RUN gcc -o main menu/main.c menu/process_handling.c shared/log.c -I/shared/include -lncurses
-RUN gcc -o manipulator server/main.c server/hmr.c shared/log.c -I/shared/include -losip
+RUN gcc -o manipulator server/main.c server/hmr.c shared/log.c -I/shared/include -L/usr/lib/x86_64-linux-gnu -losip2 -losipparser2
 
 
 COPY shared/config.txt /usr/src/app/
