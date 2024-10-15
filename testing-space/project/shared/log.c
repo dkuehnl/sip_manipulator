@@ -21,7 +21,7 @@ char* get_timestamp(){
     return timeString;
 }
 
-void error_msg(char *logfile, char *error_msg) {
+void error_msg(const char *logfile, char *error_msg) {
     FILE *file = fopen(logfile, "a"); 
     fprintf(file, "%s - %s\n", get_timestamp(), error_msg);
 

@@ -23,6 +23,7 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
     if (osip_message_parse(sip, sip_message, strlen(sip_message))!=0){
         error_msg(sip_hmr_log, "ERROR process_hmr: Message couldn't be parsed.");
         error_msg(sip_man_log, "ERROR process_hmr: Message couldn't be parsed.");
+        osip_message_free(sip);
         return;
     }
 
@@ -102,6 +103,9 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
     size_t length; 
     osip_message_to_str(sip, &dest, &length);
     strcpy(sip_message, dest); 
+
+    osip_message_free(sip); 
+    free(dest);
 }
 
  

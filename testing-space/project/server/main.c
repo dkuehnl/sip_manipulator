@@ -12,6 +12,7 @@
 
 #include "../shared/include/log.h"
 #include "./include/hmr.h"
+#include "./include/dns.h"
 
 #define GLOBAL_CONFIG_PATH "../shared/config.txt"
 
@@ -76,7 +77,9 @@ ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){
     return table;
 }
 
-void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char *int_hmr_path, char *ext_hmr_path, char *mir_hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror){
+void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char *int_hmr_path, char *ext_hmr_path, 
+char *mir_hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror, char *dns_config_path, 
+char *domain, char *own_precedense){
     FILE *config = fopen(GLOBAL_CONFIG_PATH, "r");
     if (config == NULL) {
         printf("CRITIC: Config-File could not be opened!\n");
@@ -86,25 +89,32 @@ void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char 
     char line[128];
     while (fgets(line, sizeof(line), config)) {
         if (strncmp(line, "IP_ADDRESS_EXT", 14) == 0) {
-            sscanf(line, "IP_ADDRESS_EXT=%s", ip_address_ext);
+            sscanf(line, "IP_ADDRESS_EXT=%16s", ip_address_ext);
         }else if (strncmp(line, "IP_PORT_INT", 11) == 0) {
-            sscanf(line, "IP_PORT_INT=%s", ip_port_int);
+            sscanf(line, "IP_PORT_INT=%6s", ip_port_int);
         }else if (strncmp(line, "IP_PORT_EXT", 11) == 0) {
-            sscanf(line, "IP_PORT_EXT=%s", ip_port_ext);
+            sscanf(line, "IP_PORT_EXT=%6s", ip_port_ext);
         }else if (strncmp(line, "MAIN_SIP_LOG", 12) == 0) {
-            sscanf(line, "MAIN_SIP_LOG=%s", sip_man_log); 
+            sscanf(line, "MAIN_SIP_LOG=%64s", sip_man_log); 
         } else if (strncmp(line, "HMR_LOG", 7) == 0) {
-            sscanf(line, "HMR_LOG=%s", sip_hmr_log);   
+            sscanf(line, "HMR_LOG=%64s", sip_hmr_log);   
         } else if (strncmp(line, "VERSION", 7) == 0) {
-            sscanf(line, "VERSION=%s", version); 
+            sscanf(line, "VERSION=%8s", version); 
         } else if (strncmp(line, "INC_HMR_PATH", 12) == 0) {
-            sscanf(line, "INC_HMR_PATH=%s", int_hmr_path);
+            sscanf(line, "INC_HMR_PATH=%64s", int_hmr_path);
         } else if (strncmp(line, "OUT_HMR_PATH", 12) == 0) {
-            sscanf(line, "OUT_HMR_PATH=%s", ext_hmr_path);  
+            sscanf(line, "OUT_HMR_PATH=%64s", ext_hmr_path);  
         } else if (strncmp(line, "MIR_HMR_PATH", 12) == 0) {
-            sscanf(line, "MIR_HMR_PATH=%s", mir_hmr_path); 
+            sscanf(line, "MIR_HMR_PATH=%64s", mir_hmr_path); 
         } else if (strncmp(line, "MIRROR", 6) == 0) {
-            sscanf(line, "MIRROR=%d", mirror);
+            sscanf(line, "MIRROR=%1d", mirror);
+        } else if (strncmp(line, "RESOLVE_FILE", 12) == 0) {
+            sscanf(line, "RESOLVE_FILE=%127s", dns_config_path);
+        } else if (strncmp(line, "DOMAIN", 6) == 0) {
+            sscanf(line, "DOMAIN=%128s", domain);
+        } else if (strncmp(line, "OWN_PREC", 8) == 0) {
+            sscanf(line, "OWN_PREC=%64s", own_precedense);
+            printf("%s\n", own_precedense); 
         }
     }
     fclose(config);
@@ -161,12 +171,28 @@ int main()
     char                version[8];
     char                tmp[2048];
     int                 mirror = 0;
+    char                dns_config_path[128] = {0};
+    char                domain[128];
+    char                own_precedense[64];               
 
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
         printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
-    load_main_config(version, sip_man_log, sip_hmr_log, int_hmr_path, ext_hmr_path, mir_hmr_path, ip_addr_ext, ip_port_ext, ip_port_int, &mirror); 
+    load_main_config(
+        version, 
+        sip_man_log, 
+        sip_hmr_log, 
+        int_hmr_path, 
+        ext_hmr_path, 
+        mir_hmr_path, 
+        ip_addr_ext, 
+        ip_port_ext, 
+        ip_port_int, 
+        &mirror, 
+        dns_config_path, 
+        domain, 
+        own_precedense); 
 
     //Start Logging
     snprintf(tmp, sizeof(tmp), "\nSIP-Manipulator v%s startet.", version);
@@ -197,7 +223,12 @@ int main()
             error_msg(sip_man_log, "INFO: SIG-Handler established."); 
         }
     }
+
     signal(SIGTERM, handle_sigterm); 
+    printf("Path: %s\nDomain: %s\nPrecedence: %s\n", dns_config_path, domain, own_precedense);
+    dns(dns_config_path, domain, own_precedense, sip_man_log);
+
+    printf("Prio 10: %s\nPrio 20: %s\nPrio 30: %s\n", a_record_prio10, a_record_prio20, a_record_prio30);    
 
     //create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
