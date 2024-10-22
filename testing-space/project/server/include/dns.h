@@ -7,7 +7,12 @@ extern char        a_record_prio30[64];
 extern uint32_t    a_record_ttl;
 extern uint32_t    srv_ttl; 
 
-void dns(const char *dns_config_path, const char *domain, char *own_precedense, const char *logfile);
+extern char         dns_config_path[128];
+extern char         domain[128];
+extern char         own_precedense[64];
+extern char         sip_man_log[64];
+
+void *start_dns_thread(void* args); 
 
 
 #endif

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <ldns/ldns.h>
+#include <signal.h>
 
 #include "../shared/include/log.h"
 #include "./include/dns.h"
@@ -50,7 +51,7 @@ void get_naptr(const char *dns_config_path, const char *dns_name, const char *pr
     ldns_resolver_deep_free(resolver); 
 }
 
-void get_srv(const char *dns_config_path, const char *logfile){
+void get_srv(const char *dns_config_path, const char *sip_man_log){
     ldns_resolver   *resolver; 
     ldns_pkt        *packet;
     ldns_rdf        *domain;
@@ -74,7 +75,7 @@ void get_srv(const char *dns_config_path, const char *logfile){
         } else if (prio == 30) {
             strcpy(srv_prio30_target, ldns_rdf2str(ldns_rr_rdf(rr, 3)));
         } else {
-            error_msg(logfile, "ERROR DNS SRV: No valid entries found.");
+            error_msg(sip_man_log, "ERROR DNS SRV: No valid entries found.");
         }
         srv_ttl = ldns_rr_ttl(rr);
     }
@@ -110,25 +111,35 @@ void get_a_record(const char *dns_config_path, const char *target, char *globale
     ldns_resolver_deep_free(resolver); 
 }
 
+void handle_sighup(int signal) {
+    //error_msg
+}
 
-void dns(const char *dns_config_path, const char *domain, char *own_precedense, const char *logfile){
-    uint32_t    timer = 0;
-    char        tmp[256];
-    //Signal-Handler 
+void resolve_dns(const char *dns_config_path, const char *domain, char *own_precedense, const char *sip_man_log){
+    uint32_t            timer = 0;
+    char                tmp[256];
+
+    struct sigaction    sa; 
+    sa.sa_handler = &handle_sighup; 
+    sa.sa_flags = 0;
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        error_msg(sip_man_log, "WARNING DNS: Cannot initialize Sighandler.");
+    }
+
 
     printf("hier"); 
     get_naptr(dns_config_path, domain, own_precedense);
 
     while (1) {
         if (srv_ttl <= 0) {
-            error_msg(logfile, "SRV-TTL expired, performing new Request.");
+            error_msg(sip_man_log, "SRV-TTL expired, performing new Request.");
             char tmp[64] = {0}; 
             if(srv_prio10_target[0] != '\0'){
                 strcpy(tmp, srv_prio10_target);
             }
-            get_srv(dns_config_path, logfile);
+            get_srv(dns_config_path, sip_man_log);
             if (strncmp(tmp, srv_prio10_target, 64) != 0) {
-                error_msg(logfile, "New Prio10-Destination announced in SRV, get new A-Record.");
+                error_msg(sip_man_log, "New Prio10-Destination announced in SRV, get new A-Record.");
                 get_a_record(dns_config_path, srv_prio10_target, a_record_prio10);
                 get_a_record(dns_config_path, srv_prio20_target, a_record_prio20);
                 get_a_record(dns_config_path, srv_prio30_target, a_record_prio30);
@@ -136,7 +147,7 @@ void dns(const char *dns_config_path, const char *domain, char *own_precedense, 
         }
         
         if (a_record_ttl <= 0) {
-            error_msg(logfile, "A-Record-TTL expired, performing new Request.");
+            error_msg(sip_man_log, "A-Record-TTL expired, performing new Request.");
             get_a_record(dns_config_path, srv_prio10_target, a_record_prio10);
             get_a_record(dns_config_path, srv_prio20_target, a_record_prio20);
             get_a_record(dns_config_path, srv_prio30_target, a_record_prio30); 
@@ -157,12 +168,15 @@ void dns(const char *dns_config_path, const char *domain, char *own_precedense, 
             "A-Record TTL: %d\n",
             srv_prio10_target, a_record_prio10, a_record_prio20, a_record_prio30, srv_ttl, a_record_ttl
         );
-        error_msg(logfile, tmp); 
+        error_msg(sip_man_log, tmp); 
         snprintf(tmp, sizeof(tmp), "Sleep for: %d", timer);
-        error_msg(logfile, tmp);  
+        error_msg(sip_man_log, tmp);  
         sleep(timer);
         srv_ttl -= timer;
         a_record_ttl -= timer;
     }
+}
 
+void *start_dns_thread(void* args) {
+    resolve_dns(dns_config_path, domain, own_precedense, sip_man_log); 
 }

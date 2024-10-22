@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "../shared/include/log.h"
 #include "./include/hmr.h"
@@ -22,11 +23,15 @@ char                ext_hmr_path[64];
 char                mir_hmr_path[64];
 char                sip_man_log[64];
 char                sip_hmr_log[64];
+char                dns_config_path[128] = {0};
 ManipulationTable   *int_modification_table = NULL;
 ManipulationTable   *ext_modification_table = NULL;
 ManipulationTable   *mir_modification_table = NULL;
 
+char                domain[128];
+char                own_precedense[64];     
 int                 sockfd, connfd, sockfd_ext;
+
 
 ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
     ManipulationTable *table = malloc(sizeof(ManipulationTable));
@@ -114,7 +119,6 @@ char *domain, char *own_precedense){
             sscanf(line, "DOMAIN=%128s", domain);
         } else if (strncmp(line, "OWN_PREC", 8) == 0) {
             sscanf(line, "OWN_PREC=%64s", own_precedense);
-            printf("%s\n", own_precedense); 
         }
     }
     fclose(config);
@@ -155,6 +159,7 @@ void handle_sigterm() {
     exit(0); 
 }
 
+
 int main()
 {
     struct sockaddr_in  sockaddr, connaddr, sockaddr_ext;
@@ -163,6 +168,8 @@ int main()
     int                 rv, rv_ext;
     struct timeval      timeout;
     struct sigaction    sa;
+    int                 result;
+    pthread_t           dns_thread;
 
     //Default-Values (overwritten by config-file)
     char                ip_addr_ext[16] = "127.0.0.1";
@@ -170,10 +177,7 @@ int main()
     char                ip_port_int[6]  = "5060";
     char                version[8];
     char                tmp[2048];
-    int                 mirror = 0;
-    char                dns_config_path[128] = {0};
-    char                domain[128];
-    char                own_precedense[64];               
+    int                 mirror = 0;          
 
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
         printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
@@ -210,7 +214,7 @@ int main()
             exit(EXIT_FAILURE); 
         } else {
             error_msg(sip_man_log, "INFO: SIG-Handler established.");
-        }
+        }   
     } else if (mirror == 0){
         error_msg(sip_man_log, "Acting as Proxy"); 
         sa.sa_handler = sighandler_no_mirror;
@@ -222,19 +226,20 @@ int main()
         } else {
             error_msg(sip_man_log, "INFO: SIG-Handler established."); 
         }
+
+        if(pthread_create(&dns_thread, NULL, start_dns_thread, NULL) != 0){
+            error_msg(sip_man_log, "WARNING: Error while creating DNS-Thread.");
+        };
+        printf("Prio 10: %s\nPrio 20: %s\nPrio 30: %s\n", a_record_prio10, a_record_prio20, a_record_prio30); 
     }
 
     signal(SIGTERM, handle_sigterm); 
-    printf("Path: %s\nDomain: %s\nPrecedence: %s\n", dns_config_path, domain, own_precedense);
-    dns(dns_config_path, domain, own_precedense, sip_man_log);
-
-    printf("Prio 10: %s\nPrio 20: %s\nPrio 30: %s\n", a_record_prio10, a_record_prio20, a_record_prio30);    
 
     //create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1)
     {
-        error_msg(sip_man_log, "ERROR MAIN: Socket creation failed ...");
+        error_msg(sip_man_log, "ERROR MAIN: Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
@@ -247,7 +252,7 @@ int main()
     //bind socket
     if((bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr))) != 0)
     {
-        error_msg(sip_man_log,"ERROR MAIN: Socket bind failed ...");
+        error_msg(sip_man_log,"ERROR MAIN: Socket bind failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
@@ -255,12 +260,12 @@ int main()
     //listen to socket
     if((listen(sockfd, 5)) != 0)
     {
-        error_msg(sip_man_log, "ERROR MAIN: Listen failed ...");
+        error_msg(sip_man_log, "ERROR MAIN: Listen failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
     else
-        error_msg(sip_man_log, "Server listening ...");
+        error_msg(sip_man_log, "Server listening");
 
     //Load HMR's
     if (mirror == 0) {
@@ -287,7 +292,7 @@ int main()
     //server loop
     while(1)
     {
-        error_msg(sip_man_log, "Waiting for incoming connection..."); 
+        error_msg(sip_man_log, "Waiting for incoming connection."); 
         connaddr_len = sizeof(connaddr);
         connfd = accept(sockfd, (struct sockaddr*)&connaddr, &connaddr_len);
         if(connfd < 0)
@@ -295,13 +300,13 @@ int main()
             error_msg(sip_man_log, "ERR 1ST-CON: Something went wrong with accepting the socket.");
         }
         else
-            error_msg(sip_man_log, "New connection accepted ...");
+            error_msg(sip_man_log, "New connection accepted.");
 
         //2nd-Connection
         if (mirror == 0) {
             sockfd_ext = socket(AF_INET, SOCK_STREAM, 0);
             if (sockfd_ext == -1) {
-                error_msg(sip_man_log, "ERR 2ND-CON: Creating of externel Socket failed...");
+                error_msg(sip_man_log, "ERR 2ND-CON: Creating of externel Socket failed.");
                 break;
             }
 
@@ -311,7 +316,7 @@ int main()
             sockaddr_ext.sin_port = htons(atoi(ip_port_ext));
 
             if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) != 0) {
-                error_msg(sip_man_log, "ERROR 2ND-CON: Connect to external server failed..");
+                error_msg(sip_man_log, "ERROR 2ND-CON: Connect to external server failed.");
                 close(sockfd_ext); 
                 exit(EXIT_FAILURE);
             } else {
@@ -329,7 +334,7 @@ int main()
             //close connection if error detected
             if(rv < 1)
             {
-                error_msg(sip_man_log, "Connection closed ...");
+                error_msg(sip_man_log, "Connection closed.");
                 close(connfd);
                 close(sockfd_ext);
                 break;
