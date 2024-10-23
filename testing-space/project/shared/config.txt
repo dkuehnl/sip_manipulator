@@ -28,4 +28,4 @@ MIR_HMR_PATH=../shared/mirror_hmr.txt
 #Server-Binary
 SIP_BIN=../server/manipulator
 #Mirroring data (1=true,0=false)
-MIRROR=1
+MIRROR=0

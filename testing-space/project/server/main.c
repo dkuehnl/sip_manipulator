@@ -210,36 +210,35 @@ int main()
         sa.sa_flags = 0; 
         sigemptyset(&sa.sa_mask);
         if (sigaction(SIGHUP, &sa, NULL) == -1){
-            error_msg(sip_man_log, "ERROR MAIN: SIG-Handler could not be initialized.");
+            error_msg(sip_man_log, "(MAIN) ERROR: SIG-Handler could not be initialized.");
             exit(EXIT_FAILURE); 
         } else {
-            error_msg(sip_man_log, "INFO: SIG-Handler established.");
+            error_msg(sip_man_log, "(MAIN) INFO: SIG-Handler established.");
         }   
     } else if (mirror == 0){
-        error_msg(sip_man_log, "Acting as Proxy"); 
+        error_msg(sip_man_log, "(MAIN) INFO: Acting as Proxy"); 
         sa.sa_handler = sighandler_no_mirror;
         sa.sa_flags = 0; 
         sigemptyset(&sa.sa_mask); 
         if (sigaction(SIGHUP, &sa, NULL) == -1){
-            error_msg(sip_man_log, "ERROR MAIN: SIG-Handler could not be initialized."); 
+            error_msg(sip_man_log, "(MAIN) ERROR: SIG-Handler could not be initialized."); 
             exit(EXIT_FAILURE); 
         } else {
-            error_msg(sip_man_log, "INFO: SIG-Handler established."); 
+            error_msg(sip_man_log, "(MAIN) INFO: SIG-Handler established."); 
         }
 
         if(pthread_create(&dns_thread, NULL, start_dns_thread, NULL) != 0){
-            error_msg(sip_man_log, "WARNING: Error while creating DNS-Thread.");
+            error_msg(sip_man_log, "(MAIN) WARNING: Error while creating DNS-Thread.");
         };
+        sleep(10); 
         printf("Prio 10: %s\nPrio 20: %s\nPrio 30: %s\n", a_record_prio10, a_record_prio20, a_record_prio30); 
     }
 
     signal(SIGTERM, handle_sigterm); 
 
     //create socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(sockfd == -1)
-    {
-        error_msg(sip_man_log, "ERROR MAIN: Socket creation failed");
+    if (sockfd = socket(AF_INET, SOCK_STREAM, 0) == -1) {
+        error_msg(sip_man_log, "(MAIN) ERROR: Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
@@ -250,63 +249,62 @@ int main()
     sockaddr.sin_port = htons(atoi(ip_port_int));
 
     //bind socket
-    if((bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr))) != 0)
-    {
-        error_msg(sip_man_log,"ERROR MAIN: Socket bind failed");
+    if((bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr))) != 0) {
+        error_msg(sip_man_log,"(MAIN) ERROR: Socket bind failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
     //listen to socket
-    if((listen(sockfd, 5)) != 0)
-    {
-        error_msg(sip_man_log, "ERROR MAIN: Listen failed");
+    if((listen(sockfd, 5)) != 0) {
+        error_msg(sip_man_log, "(MAIN) ERROR: Listen failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    else
-        error_msg(sip_man_log, "Server listening");
+    else {
+        error_msg(sip_man_log, "(MAIN) INFO: Server listening");
+    }
 
     //Load HMR's
     if (mirror == 0) {
         int_modification_table = load_hmr(int_hmr_path, sip_man_log);
         if (int_modification_table == NULL) {
-            error_msg(sip_man_log, "ERROR MAIN: INC_HMR could not be loaded."); 
+            error_msg(sip_man_log, "(MAIN) ERROR: INC_HMR could not be loaded."); 
         }
         ext_modification_table = load_hmr(ext_hmr_path, sip_man_log); 
         if (ext_modification_table == NULL) {
-            error_msg(sip_man_log, "ERROR MAIN: OUT_HMR could not be loaded."); 
+            error_msg(sip_man_log, "(MAIN) ERROR: OUT_HMR could not be loaded."); 
         }
     } else if (mirror == 1) {
         mir_modification_table = load_hmr(mir_hmr_path, sip_man_log); 
         if (mir_modification_table == NULL) {
-            error_msg(sip_man_log, "ERROR MAIN: MIR_HMR could not be loaded."); 
+            error_msg(sip_man_log, "(MAIN) ERROR: MIR_HMR could not be loaded."); 
         }
     } else {
-        error_msg(sip_man_log, "ERROR MAIN: No HMR-File loaded, shutdown now.");
+        error_msg(sip_man_log, "(MAIN) ERROR: No HMR-File loaded, shutdown now.");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-
+    
     //server loop
     while(1)
     {
-        error_msg(sip_man_log, "Waiting for incoming connection."); 
+        error_msg(sip_man_log, "(MAIN) INFO: Waiting for incoming connection."); 
         connaddr_len = sizeof(connaddr);
         connfd = accept(sockfd, (struct sockaddr*)&connaddr, &connaddr_len);
         if(connfd < 0)
         {
-            error_msg(sip_man_log, "ERR 1ST-CON: Something went wrong with accepting the socket.");
+            error_msg(sip_man_log, "(MAIN) ERROR 1ST-CON: Something went wrong with accepting the socket.");
         }
         else
-            error_msg(sip_man_log, "New connection accepted.");
+            error_msg(sip_man_log, "(MAIN) INFO: New connection accepted.");
 
         //2nd-Connection
         if (mirror == 0) {
             sockfd_ext = socket(AF_INET, SOCK_STREAM, 0);
             if (sockfd_ext == -1) {
-                error_msg(sip_man_log, "ERR 2ND-CON: Creating of externel Socket failed.");
+                error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Creating of externel Socket failed.");
                 break;
             }
 
@@ -316,11 +314,11 @@ int main()
             sockaddr_ext.sin_port = htons(atoi(ip_port_ext));
 
             if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) != 0) {
-                error_msg(sip_man_log, "ERROR 2ND-CON: Connect to external server failed.");
+                error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Connect to external server failed.");
                 close(sockfd_ext); 
                 exit(EXIT_FAILURE);
             } else {
-                snprintf(tmp, sizeof(tmp), "Connection to %s established successfully", ip_addr_ext);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Connection to %s established successfully", ip_addr_ext);
                 error_msg(sip_man_log, tmp);
             }
         }
@@ -334,33 +332,33 @@ int main()
             //close connection if error detected
             if(rv < 1)
             {
-                error_msg(sip_man_log, "Connection closed.");
+                error_msg(sip_man_log, "(MAIN) INFO: Connection closed.");
                 close(connfd);
                 close(sockfd_ext);
                 break;
             }
             else
-                snprintf(tmp, sizeof(tmp), "%i bytes of data received.", rv);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received.", rv);
                 error_msg(sip_man_log, tmp);
 
             if (mirror == 0) {
                 process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
                 rv_ext = write(sockfd_ext, buffer, strlen(buffer));
-                snprintf(tmp, sizeof(tmp), "Transmitted Buffer:\n%s", buffer);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                 error_msg(sip_hmr_log, tmp);
                 memset(buffer, 0, sizeof(buffer));
 
                 rv_ext = read(sockfd_ext, buffer, sizeof(buffer));
-                snprintf(tmp, sizeof(tmp), "%i bytes of data received from external server", rv_ext);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received from external server", rv_ext);
                 error_msg(sip_man_log, tmp);
                 
                 process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
                 rv = write(connfd, buffer, sizeof(buffer));
-                snprintf(tmp, sizeof(tmp), "Transmitted Buffer:\n%s", buffer);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                 error_msg(sip_hmr_log, tmp); 
             } else if (mirror == 1) {
                 process_buffer(buffer, mir_modification_table, sip_man_log, sip_hmr_log);
-                snprintf(tmp, sizeof(tmp), "Mirror: MIR-Modification applied:\n'%s'", buffer);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO Mirror: MIR-Modification applied:\n'%s'", buffer);
                 error_msg(sip_hmr_log, tmp); 
                 rv = write(connfd, buffer, sizeof(buffer));
             }
