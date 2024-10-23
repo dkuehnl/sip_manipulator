@@ -40,7 +40,7 @@ ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){
 
     FILE *hmr = fopen(hmr_path, "r"); 
     if (hmr == NULL) {
-        error_msg(sip_man_log, "Error while reading file"); 
+        error_msg(sip_man_log, "(MAIN) ERROR: Error while reading file"); 
         return table;
     }
     char line[256];
@@ -82,12 +82,28 @@ ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){
     return table;
 }
 
+void free_manipulation_table(ManipulationTable *table) {
+    if (table) {
+        for (int i = 0; i < table->count; i++){
+            free(table->entries[i].message_type); 
+            for (int j = 0; j < table->entries[i].count; j++){
+                free(table->entries[i].headers[j]);
+                free(table->entries[i].new_values[j]);
+            }
+            free(table->entries[i].headers); 
+            free(table->entries[i].new_values); 
+        }
+        free(table->entries); 
+        free(table); 
+    }   
+}
+
 void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char *int_hmr_path, char *ext_hmr_path, 
 char *mir_hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror, char *dns_config_path, 
 char *domain, char *own_precedense){
     FILE *config = fopen(GLOBAL_CONFIG_PATH, "r");
     if (config == NULL) {
-        printf("CRITIC: Config-File could not be opened!\n");
+        printf("(MAIN) CRITIC: Config-File could not be opened!\n");
         exit(EXIT_FAILURE); 
     }
 
@@ -125,37 +141,40 @@ char *domain, char *own_precedense){
 }
 
 void sighandler_mirror() {
-    error_msg(sip_man_log, "Incoming SIGHUP, reloading HMR");
+    error_msg(sip_man_log, "(MAIN) INFO: Incoming SIGHUP, reloading HMR");
     mir_modification_table = load_hmr(mir_hmr_path, sip_man_log); 
     if (mir_modification_table == NULL) {
-        error_msg(sip_man_log, "ERROR MAIN: MIR_HMR could not be loaded."); 
+        error_msg(sip_man_log, "(MAIN) ERROR: MIR_HMR could not be loaded."); 
     }
-    error_msg(sip_man_log, "HMR reloaded finished");
+    error_msg(sip_man_log, "(MAIN) INFO: HMR reloaded finished");
 }
 
 void sighandler_no_mirror() {
-    error_msg(sip_man_log, "Incoming SIGHUP, reloading HMR");
+    error_msg(sip_man_log, "(MAIN) INFO: Incoming SIGHUP, reloading HMR");
     int_modification_table = load_hmr(int_hmr_path, sip_man_log);
     if (int_modification_table == NULL) {
-        error_msg(sip_man_log, "ERROR MAIN: INC_HMR could not be loaded."); 
+        error_msg(sip_man_log, "(MAIN) ERROR: INC_HMR could not be loaded."); 
     }
     ext_modification_table = load_hmr(ext_hmr_path, sip_man_log); 
     if (ext_modification_table == NULL) {
-        error_msg(sip_man_log, "ERROR MAIN: OUT_HMR could not be loaded."); 
+        error_msg(sip_man_log, "(MAIN) ERROR: OUT_HMR could not be loaded."); 
     }
-    error_msg(sip_man_log, "HMR reloaded finished"); 
+    error_msg(sip_man_log, "(MAIN) INFO: HMR reloaded finished"); 
 }
 
 void handle_sigterm() {
-    error_msg(sip_man_log, "Received SIGTERM, waiting 30 seconds before closing everything."); 
+    error_msg(sip_man_log, "(MAIN) INFO: Received SIGTERM, waiting 30 seconds before closing everything."); 
     sleep(30);
 
-    error_msg(sip_man_log, "Closing all sockets.");
+    error_msg(sip_man_log, "(MAIN) INFO: Closing all sockets.");
     close(connfd); 
     close(sockfd); 
     close(sockfd_ext);
+    free_manipulation_table(int_modification_table);
+    free_manipulation_table(ext_modification_table); 
+    free_manipulation_table(mir_modification_table);
 
-    error_msg(sip_man_log, "Terminating Server by SIGTERM"); 
+    error_msg(sip_man_log, "(MAIN) INFO: Terminating Server by SIGTERM"); 
     exit(0); 
 }
 
@@ -180,7 +199,7 @@ int main()
     int                 mirror = 0;          
 
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
-        printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
+        printf("(MAIN) CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
     load_main_config(
@@ -237,7 +256,8 @@ int main()
     signal(SIGTERM, handle_sigterm); 
 
     //create socket
-    if (sockfd = socket(AF_INET, SOCK_STREAM, 0) == -1) {
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
         error_msg(sip_man_log, "(MAIN) ERROR: Socket creation failed");
         exit(EXIT_FAILURE);
     }
@@ -316,6 +336,8 @@ int main()
             if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) != 0) {
                 error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Connect to external server failed.");
                 close(sockfd_ext); 
+                close(connfd);
+                close(sockfd); 
                 exit(EXIT_FAILURE);
             } else {
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Connection to %s established successfully", ip_addr_ext);
