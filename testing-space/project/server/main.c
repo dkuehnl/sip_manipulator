@@ -32,7 +32,7 @@ char                domain[128];
 char                own_precedense[64];     
 int                 sockfd, connfd, sockfd_ext;
 
-
+//Function-Declaration:
 ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
     ManipulationTable *table = malloc(sizeof(ManipulationTable));
     table->entries = NULL;
@@ -140,6 +140,7 @@ char *domain, char *own_precedense){
     fclose(config);
 }
 
+//Signal-Handler: 
 void sighandler_mirror() {
     error_msg(sip_man_log, "(MAIN) INFO: Incoming SIGHUP, reloading HMR");
     mir_modification_table = load_hmr(mir_hmr_path, sip_man_log); 
@@ -185,7 +186,6 @@ int main()
     unsigned int        connaddr_len;
     char                buffer[2048];
     int                 rv, rv_ext;
-    struct timeval      timeout;
     struct sigaction    sa;
     int                 result;
     pthread_t           dns_thread;
@@ -202,6 +202,7 @@ int main()
         printf("(MAIN) CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
+
     load_main_config(
         version, 
         sip_man_log, 
@@ -218,13 +219,13 @@ int main()
         own_precedense); 
 
     //Start Logging
-    snprintf(tmp, sizeof(tmp), "\nSIP-Manipulator v%s startet.", version);
+    snprintf(tmp, sizeof(tmp), "SIP-Manipulator v%s startet.", version);
     error_msg(sip_man_log, tmp);
     error_msg(sip_man_log, "Loading config-file..."); 
-    snprintf(tmp, sizeof(tmp), "Following values are used:\nexternal IP: %s\texternal Port: %s\tinternal Port: '%s'", ip_addr_ext, ip_port_ext, ip_port_int);
+    snprintf(tmp, sizeof(tmp), "Following values are used:\n\texternal IP: %s\texternal Port: %s\tinternal Port: '%s'", ip_addr_ext, ip_port_ext, ip_port_int);
     error_msg(sip_man_log, tmp);
     if (mirror == 1){
-        error_msg(sip_man_log, "Acting as Mirror");
+        error_msg(sip_man_log, "(MAIN) INFO: Acting as Mirror");
         sa.sa_handler = sighandler_mirror;
         sa.sa_flags = 0; 
         sigemptyset(&sa.sa_mask);
@@ -250,7 +251,6 @@ int main()
             error_msg(sip_man_log, "(MAIN) WARNING: Error while creating DNS-Thread.");
         };
     }
-
     signal(SIGTERM, handle_sigterm); 
 
     //create socket
@@ -311,12 +311,11 @@ int main()
         error_msg(sip_man_log, "(MAIN) INFO: Waiting for incoming connection."); 
         connaddr_len = sizeof(connaddr);
         connfd = accept(sockfd, (struct sockaddr*)&connaddr, &connaddr_len);
-        if(connfd < 0)
-        {
+        if(connfd < 0){
             error_msg(sip_man_log, "(MAIN) ERROR 1ST-CON: Something went wrong with accepting the socket.");
-        }
-        else
+        } else {
             error_msg(sip_man_log, "(MAIN) INFO: New connection accepted.");
+        }
 
         //2nd-Connection
         if (mirror == 0) {
@@ -350,16 +349,15 @@ int main()
             rv = read(connfd, buffer, sizeof(buffer));
 
             //close connection if error detected
-            if(rv < 1)
-            {
+            if(rv < 1){
                 error_msg(sip_man_log, "(MAIN) INFO: Connection closed.");
                 close(connfd);
                 close(sockfd_ext);
                 break;
-            }
-            else
+            } else {
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received.", rv);
                 error_msg(sip_man_log, tmp);
+            }
 
             if (mirror == 0) {
                 process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);

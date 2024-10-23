@@ -112,6 +112,7 @@ int main() {
     check_file(inc_hmr_path, main_log);
     check_file(out_hmr_path, main_log);
     check_file(mir_hmr_path, main_log);
+
     //Building Menu-Window
     initscr(); 
     clear(); 
@@ -259,7 +260,6 @@ int main() {
             }
         }
     }
-
 
     endwin();
     return 0; 

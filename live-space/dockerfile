@@ -4,10 +4,11 @@ FROM gcc:latest
 RUN apt-get update && apt-get install -y \
     libncurses5-dev\
     libncursesw5-dev\
+    libosip2-dev\
+    libldns-dev\
     nano\
     iproute2\
-    tmux\
-    libosip2-dev
+    tmux
 
 #Docker-Arbeitsverzeichnis
 WORKDIR /usr/src/app
@@ -16,7 +17,7 @@ COPY . .
 RUN ls -R /usr/src/app
 #Binary erstellen
 RUN gcc -o main menu/main.c menu/process_handling.c shared/log.c -I/shared/include -lncurses
-RUN gcc -o manipulator server/main.c server/hmr.c shared/log.c -I/shared/include -L/usr/lib/x86_64-linux-gnu -losip2 -losipparser2
+RUN gcc -o manipulator server/main.c server/hmr.c server/dns.c shared/log.c -I/shared/include -L/usr/lib/x86_64-linux-gnu -losip2 -losipparser2 -lldns
 
 
 COPY shared/config.txt /usr/src/app/

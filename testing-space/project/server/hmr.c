@@ -96,12 +96,15 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
     }
 
     if (MSG_IS_OPTIONS(sip)) {
-        osip_message_set_header(sip, "(HMR) INFO: X-Timestamp", get_timestamp()); 
+        osip_message_set_header(sip, "X-Timestamp", get_timestamp()); 
     }
     char *dest = NULL; 
     size_t length; 
     osip_message_to_str(sip, &dest, &length);
     strcpy(sip_message, dest); 
+
+    osip_message_free(sip); 
+    free(dest);
 }
 
  

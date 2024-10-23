@@ -3,7 +3,7 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.2
+VERSION=3.3
 
 #TCP/IP Config
 IP_ADDRESS_EXT=217.0.149.240
@@ -28,4 +28,5 @@ MIR_HMR_PATH=../shared/mirror_hmr.txt
 #Server-Binary
 SIP_BIN=../server/manipulator
 #Mirroring data (1=true,0=false)
+#If you're changing the mode, the manipulator must be restarted!
 MIRROR=0
