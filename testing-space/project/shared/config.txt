@@ -3,12 +3,17 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.2
+VERSION=3.3
 
 #TCP/IP Config
 IP_ADDRESS_EXT=217.0.149.240
 IP_PORT_INT=5060
 IP_PORT_EXT=5060
+
+#DNS Config
+RESOLVE_FILE=../shared/resolv.conf
+DOMAIN=555111584764.primary.companyflex.de
+OWN_PREC="SIP+D2T"
 
 #Logfiles
 MAIN_LOG=../shared/log_main.txt
@@ -23,4 +28,5 @@ MIR_HMR_PATH=../shared/mirror_hmr.txt
 #Server-Binary
 SIP_BIN=../server/manipulator
 #Mirroring data (1=true,0=false)
-MIRROR=1
+#If you're changing the mode, the manipulator must be restarted!
+MIRROR=0

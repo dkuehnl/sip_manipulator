@@ -92,7 +92,7 @@ int main() {
 
     //Startup-Routine
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
-        printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
+        printf("(MAIN) CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
 
@@ -112,6 +112,7 @@ int main() {
     check_file(inc_hmr_path, main_log);
     check_file(out_hmr_path, main_log);
     check_file(mir_hmr_path, main_log);
+
     //Building Menu-Window
     initscr(); 
     clear(); 
@@ -165,7 +166,7 @@ int main() {
                 mvprintw(LINES -2, 0, "Exiting..."); 
                 refresh(); 
                 sleep(2); 
-                error_msg(main_log, "Program closed by user-action"); 
+                error_msg(main_log, "(MAIN) INFO: Program closed by user-action"); 
                 break; 
             } else if (choice == 1){
                 //Start SIP-Server
@@ -259,7 +260,6 @@ int main() {
             }
         }
     }
-
 
     endwin();
     return 0; 

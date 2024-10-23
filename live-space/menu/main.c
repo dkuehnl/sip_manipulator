@@ -45,7 +45,6 @@ void load_main_config(char *version, char *main_log, char *sip_server_log, char 
 
     char line[128];
     while(fgets(line, sizeof(line), config)) {
-        printf("%s", line); 
         if (line[0] == '#' || line[0] == '\n') {
             continue;
         } else {
@@ -93,7 +92,7 @@ int main() {
 
     //Startup-Routine
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
-        printf("CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
+        printf("(MAIN) CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
         exit(EXIT_FAILURE); 
     }
 
@@ -167,7 +166,7 @@ int main() {
                 mvprintw(LINES -2, 0, "Exiting..."); 
                 refresh(); 
                 sleep(2); 
-                error_msg(main_log, "Program closed by user-action"); 
+                error_msg(main_log, "(MAIN) INFO: Program closed by user-action"); 
                 break; 
             } else if (choice == 1){
                 //Start SIP-Server
