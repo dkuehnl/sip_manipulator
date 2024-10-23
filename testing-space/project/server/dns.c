@@ -164,3 +164,7 @@ void resolve_dns(const char *dns_config_path, const char *domain, char *own_prec
         a_record_ttl -= timer;
     }
 }
+
+void *start_dns_thread(void* args) {
+    resolve_dns(dns_config_path, domain, own_precedense, sip_man_log);
+}

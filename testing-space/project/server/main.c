@@ -249,8 +249,6 @@ int main()
         if(pthread_create(&dns_thread, NULL, start_dns_thread, NULL) != 0){
             error_msg(sip_man_log, "(MAIN) WARNING: Error while creating DNS-Thread.");
         };
-        sleep(10); 
-        printf("Prio 10: %s\nPrio 20: %s\nPrio 30: %s\n", a_record_prio10, a_record_prio20, a_record_prio30); 
     }
 
     signal(SIGTERM, handle_sigterm); 
