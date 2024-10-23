@@ -23,6 +23,8 @@ char        a_record_prio10[64] = {0};
 char        a_record_prio20[64] = {0};
 char        a_record_prio30[64] = {0};
 
+uint16_t    flags = 0; 
+
 
 void get_naptr(const char *dns_config_path, const char *dns_name, const char *precedense){
     ldns_resolver   *resolver; 
@@ -34,7 +36,7 @@ void get_naptr(const char *dns_config_path, const char *dns_name, const char *pr
 
     domain = ldns_dname_new_frm_str(dns_name);
     status = ldns_resolver_new_frm_file(&resolver, dns_config_path); 
-    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_NAPTR, LDNS_RR_CLASS_IN, NULL); 
+    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_NAPTR, LDNS_RR_CLASS_IN, flags); 
 
     response = ldns_pkt_rr_list_by_type(packet, LDNS_RR_TYPE_NAPTR, LDNS_SECTION_ANSWER);
     for (size_t i = 0; i < ldns_rr_list_rr_count(response); i++){
@@ -62,7 +64,7 @@ void get_srv(const char *dns_config_path, const char *sip_man_log){
 
     domain = ldns_dname_new_frm_str(naptr_replacement);
     status = ldns_resolver_new_frm_file(&resolver, dns_config_path); 
-    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_SRV, LDNS_RR_CLASS_IN, NULL); 
+    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_SRV, LDNS_RR_CLASS_IN, flags); 
 
     response = ldns_pkt_rr_list_by_type(packet, LDNS_RR_TYPE_SRV, LDNS_SECTION_ANSWER);
     for (size_t i = 0; i < ldns_rr_list_rr_count(response); i++) {
@@ -95,7 +97,7 @@ void get_a_record(const char *dns_config_path, const char *target, char *globale
 
     domain = ldns_dname_new_frm_str(target);
     status = ldns_resolver_new_frm_file(&resolver, dns_config_path); 
-    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_A, LDNS_RR_CLASS_IN, NULL); 
+    packet = ldns_resolver_search(resolver, domain, LDNS_RR_TYPE_A, LDNS_RR_CLASS_IN, flags); 
 
     response = ldns_pkt_rr_list_by_type(packet, LDNS_RR_TYPE_A, LDNS_SECTION_ANSWER);
     rdata = ldns_rr_rdf(ldns_rr_list_rr(response, 0), 0);
