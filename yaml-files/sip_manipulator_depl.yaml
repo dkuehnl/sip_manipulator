@@ -17,5 +17,6 @@ spec:
         image: dkuehnlein/sip-manipulator:latest
         ports:
         - containerPort: 5060
+        - containerPort: 30000
         stdin: true
         tty: true
