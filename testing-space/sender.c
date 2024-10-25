@@ -22,7 +22,6 @@ void create_sip_option(char *buffer, const char *pcscf) {
     "Supported: 100rel,timer,histinfo\r\n"
     "User-Agent: Dennis-Test\r\n"
     "Allow: INVITE, ACK, CANCEL, OPTIONS, BYE\r\n"
-    "P-Preferred-Identity: <sip:+00000001.1.1.1;user=phone>\r\n"
     "Content-Length: 0\r\n"
     "\r\n",
     pcscf, pcscf, pcscf

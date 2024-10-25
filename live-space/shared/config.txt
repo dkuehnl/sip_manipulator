@@ -3,16 +3,19 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.3
+VERSION=3.3.1
 
 #TCP/IP Config
+#External ip-address will only be used if static=1
+STATIC=0
 IP_ADDRESS_EXT=217.0.149.240
 IP_PORT_INT=5060
 IP_PORT_EXT=5060
 
 #DNS Config
 RESOLVE_FILE=/usr/src/app/shared/resolv.conf
-DOMAIN=555111584764.primary.companyflex.de
+#DOMAIN=555111584764.primary.companyflex.de
+DOMAIN=tel.t-online.de
 OWN_PREC="SIP+D2T"
 
 #Logfiles
