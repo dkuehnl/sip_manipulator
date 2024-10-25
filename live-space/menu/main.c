@@ -14,7 +14,7 @@
 bool server_running = false;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define GLOBAL_CONFIG_PATH "/usr/src/app/config.txt"
+#define GLOBAL_CONFIG_PATH "/data/sip_manipulator/prod_files/config.txt"
 
 
 void print_menu(WINDOW *menu_win, int highlight, char *choices[], int n_choices) {
