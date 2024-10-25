@@ -15,7 +15,7 @@
 #include "./include/hmr.h"
 #include "./include/dns.h"
 
-#define GLOBAL_CONFIG_PATH "/usr/src/app/config.txt"
+#define GLOBAL_CONFIG_PATH "/data/sip_manipulator/prod_files/config.txt"
 
 //Globale Filepaths: 
 char                int_hmr_path[64];
@@ -31,6 +31,8 @@ ManipulationTable   *mir_modification_table = NULL;
 char                domain[128];
 char                own_precedense[64];     
 int                 sockfd, connfd, sockfd_ext;
+
+int                 execute_loop = 1; 
 
 //Function-Declaration:
 ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
@@ -100,7 +102,7 @@ void free_manipulation_table(ManipulationTable *table) {
 
 void load_main_config(char *version, char *sip_man_log, char *sip_hmr_log, char *int_hmr_path, char *ext_hmr_path, 
 char *mir_hmr_path, char *ip_address_ext, char *ip_port_ext, char *ip_port_int, int *mirror, char *dns_config_path, 
-char *domain, char *own_precedense){
+char *domain, char *own_precedense, int *dns_mode){
     FILE *config = fopen(GLOBAL_CONFIG_PATH, "r");
     if (config == NULL) {
         printf("(MAIN) CRITIC: Config-File could not be opened!\n");
@@ -135,6 +137,8 @@ char *domain, char *own_precedense){
             sscanf(line, "DOMAIN=%128s", domain);
         } else if (strncmp(line, "OWN_PREC", 8) == 0) {
             sscanf(line, "OWN_PREC=%64s", own_precedense);
+        } else if (strncmp(line, "STATIC", 6) == 0) {
+            sscanf(line, "STATIC=%1d", dns_mode);
         }
     }
     fclose(config);
@@ -164,19 +168,12 @@ void sighandler_no_mirror() {
 }
 
 void handle_sigterm() {
-    error_msg(sip_man_log, "(MAIN) INFO: Received SIGTERM, waiting 30 seconds before closing everything."); 
-    sleep(30);
-
+    error_msg(sip_man_log, "(MAIN) INFO: Signal reached.");
+    execute_loop = 0; 
     error_msg(sip_man_log, "(MAIN) INFO: Closing all sockets.");
-    close(connfd); 
-    close(sockfd); 
     close(sockfd_ext);
-    free_manipulation_table(int_modification_table);
-    free_manipulation_table(ext_modification_table); 
-    free_manipulation_table(mir_modification_table);
-
-    error_msg(sip_man_log, "(MAIN) INFO: Terminating Server by SIGTERM"); 
-    exit(0); 
+    close(connfd); 
+    close(sockfd);
 }
 
 
@@ -197,6 +194,7 @@ int main()
     char                version[8];
     char                tmp[2048];
     int                 mirror = 0;  
+    int                 dns_mode = 0; 
 
     if(access(GLOBAL_CONFIG_PATH, (F_OK | R_OK)) != 0) {
         printf("(MAIN) CRITIC: No Config-File found - please make sure it in place (%s)!\n", GLOBAL_CONFIG_PATH);
@@ -216,13 +214,14 @@ int main()
         &mirror, 
         dns_config_path, 
         domain, 
-        own_precedense); 
+        own_precedense,
+        &dns_mode); 
 
     //Start Logging
     snprintf(tmp, sizeof(tmp), "SIP-Manipulator v%s startet.", version);
     error_msg(sip_man_log, tmp);
     error_msg(sip_man_log, "Loading config-file..."); 
-    snprintf(tmp, sizeof(tmp), "Following values are used:\n\texternal IP: %s\texternal Port: %s\tinternal Port: '%s'", ip_addr_ext, ip_port_ext, ip_port_int);
+    snprintf(tmp, sizeof(tmp), "Following values are used:\n\texternal IP: %s\texternal Port: %s\tinternal Port: %s\tDNS-Mode: %d", ip_addr_ext, ip_port_ext, ip_port_int, dns_mode);
     error_msg(sip_man_log, tmp);
     if (mirror == 1){
         error_msg(sip_man_log, "(MAIN) INFO: Acting as Mirror");
@@ -306,13 +305,17 @@ int main()
 
 
     //server loop
-    while(1)
+    while(execute_loop)
     {
         error_msg(sip_man_log, "(MAIN) INFO: Waiting for incoming connection."); 
         connaddr_len = sizeof(connaddr);
         connfd = accept(sockfd, (struct sockaddr*)&connaddr, &connaddr_len);
         if(connfd < 0){
-            error_msg(sip_man_log, "(MAIN) ERROR 1ST-CON: Something went wrong with accepting the socket.");
+            if (execute_loop == 1){
+                error_msg(sip_man_log, "MAIN ERROR 1ST-CON: Something went wrong with accepting the socket");
+            } else {
+                error_msg(sip_man_log, "(MAIN) ERROR 1ST-CON: SIGTERM received.");
+            }
         } else {
             error_msg(sip_man_log, "(MAIN) INFO: New connection accepted.");
         }
@@ -325,20 +328,30 @@ int main()
                 break;
             }
 
+            if (dns_mode == 0) {
+                //check PCSCF
+                strcpy(ip_addr_ext, a_record_prio10);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: dynamic learned ip-address: %s", ip_addr_ext);
+                error_msg(sip_man_log, tmp); 
+            }
             memset(&sockaddr_ext, 0x00, sizeof(sockaddr_ext));
             sockaddr_ext.sin_family = AF_INET;
             sockaddr_ext.sin_addr.s_addr = inet_addr(ip_addr_ext);
             sockaddr_ext.sin_port = htons(atoi(ip_port_ext));
 
-            if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) != 0) {
-                error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Connect to external server failed.");
-                close(sockfd_ext); 
-                close(connfd);
-                close(sockfd); 
-                exit(EXIT_FAILURE);
-            } else {
+            if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) < 0) {
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Connection to %s established successfully", ip_addr_ext);
                 error_msg(sip_man_log, tmp);
+            } else {
+                if (execute_loop == 1){
+                    error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Connect to external server failed. Terminating Server.");
+                    close(sockfd_ext); 
+                    close(connfd);
+                    close(sockfd); 
+                    exit(EXIT_FAILURE);
+                } else {
+                    error_msg(sip_man_log, "(MAIN) INFO: SIGTERM received.");
+                }
             }
         }
 
@@ -382,6 +395,12 @@ int main()
             }
         }
     }
+
+    error_msg(sip_man_log, "(MAIN) INFO: Server-Loop terminated, release manipulation-tables."); 
+    free_manipulation_table(int_modification_table);
+    free_manipulation_table(ext_modification_table); 
+    free_manipulation_table(mir_modification_table);
+    error_msg(sip_man_log, "(MAIN) INFO: Terminating Server by SIGTERM"); 
 
     return 0;
 }

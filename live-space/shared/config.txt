@@ -3,16 +3,19 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.3
+VERSION=3.3.1
 
 #TCP/IP Config
+#External ip-address will only be used if static=1
+STATIC=0
 IP_ADDRESS_EXT=217.0.149.240
 IP_PORT_INT=5060
 IP_PORT_EXT=5060
 
 #DNS Config
 RESOLVE_FILE=/usr/src/app/shared/resolv.conf
-DOMAIN=555111584764.primary.companyflex.de
+#DOMAIN=555111584764.primary.companyflex.de
+DOMAIN=tel.t-online.de
 OWN_PREC="SIP+D2T"
 
 #Logfiles
@@ -21,9 +24,9 @@ MAIN_SIP_LOG=/usr/src/app/log_manipulator.txt
 HMR_LOG=/usr/src/app/log_hmr.txt
 
 #HMR-Location
-INC_HMR_PATH=/usr/src/app/shared/inc_hmr.txt
-OUT_HMR_PATH=/usr/src/app/shared/out_hmr.txt
-MIR_HMR_PATH=/usr/src/app/shared/mirror_hmr.txt
+INC_HMR_PATH=/data/sip_manipulator/prod_files/inc_hmr.txt
+OUT_HMR_PATH=/data/sip_manipulator/prod_files/out_hmr.txt
+MIR_HMR_PATH=/data/sip_manipulator/prod_files/mirror_hmr.txt
 
 #Server-Binary
 SIP_BIN=/usr/src/app/manipulator

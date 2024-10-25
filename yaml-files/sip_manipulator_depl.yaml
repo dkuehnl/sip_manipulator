@@ -17,5 +17,13 @@ spec:
         image: dkuehnlein/sip-manipulator:latest
         ports:
         - containerPort: 5060
+        - containerPort: 30000
         stdin: true
         tty: true
+        volumeMounts:
+        - mountPath: "/data"
+          name: nfs-storage
+      volumes:
+      - name: nfs-storage
+        persistentVolumeClaim:
+          claimName: pvc-nfs
