@@ -24,9 +24,9 @@ MAIN_SIP_LOG=/usr/src/app/log_manipulator.txt
 HMR_LOG=/usr/src/app/log_hmr.txt
 
 #HMR-Location
-INC_HMR_PATH=/usr/src/app/shared/inc_hmr.txt
-OUT_HMR_PATH=/usr/src/app/shared/out_hmr.txt
-MIR_HMR_PATH=/usr/src/app/shared/mirror_hmr.txt
+INC_HMR_PATH=/data/sip_manipulator/prod_files/inc_hmr.txt
+OUT_HMR_PATH=/data/sip_manipulator/prod_files/out_hmr.txt
+MIR_HMR_PATH=/data/sip_manipulator/prod_files/mirror_hmr.txt
 
 #Server-Binary
 SIP_BIN=/usr/src/app/manipulator

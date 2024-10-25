@@ -15,7 +15,7 @@
 #include "./include/hmr.h"
 #include "./include/dns.h"
 
-#define GLOBAL_CONFIG_PATH "/usr/src/app/config.txt"
+#define GLOBAL_CONFIG_PATH "/data/sip_manipulator/prod_files/config.txt"
 
 //Globale Filepaths: 
 char                int_hmr_path[64];
