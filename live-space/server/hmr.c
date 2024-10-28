@@ -108,7 +108,7 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
  
 
 void process_buffer(char *sip_message, ManipulationTable *modification_table,char *sip_man_log, char *sip_hmr_log) {
-    char tmp[2048];
+    char tmp[8192];
     char tmp_err_msg[128];
     strcpy(tmp, sip_message);
     char *r_uri_end = strstr(tmp, "\r\n"); 

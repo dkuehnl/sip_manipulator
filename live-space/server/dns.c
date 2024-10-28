@@ -119,7 +119,7 @@ void resolve_dns(const char *dns_config_path, const char *domain, char *own_prec
 
     get_naptr(dns_config_path, domain, own_precedense);
 
-    while (1) {
+    while (execute_loop) {
         if (srv_ttl <= 0) {
             error_msg(sip_man_log, "(DNS) INFO: SRV-TTL expired, performing new Request.");
             char tmp[64] = {0}; 
@@ -165,6 +165,7 @@ void resolve_dns(const char *dns_config_path, const char *domain, char *own_prec
         srv_ttl -= timer;
         a_record_ttl -= timer;
     }
+    error_msg(sip_man_log, "(DNS) INFO: Cancelation-Request detected, Loop terminated");
 }
 
 void *start_dns_thread(void* args) {

@@ -32,7 +32,7 @@ char                domain[128];
 char                own_precedense[64];     
 int                 sockfd, connfd, sockfd_ext;
 
-int                 execute_loop = 1; 
+volatile atomic_int execute_loop = 1; 
 
 //Function-Declaration:
 ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
@@ -181,18 +181,18 @@ int main()
 {
     struct sockaddr_in  sockaddr, connaddr, sockaddr_ext;
     unsigned int        connaddr_len;
-    char                buffer[2048];
+    char                buffer[8192];
     int                 rv, rv_ext;
     struct sigaction    sa;
     int                 result;
     pthread_t           dns_thread;
+    char                tmp[2048];
 
     //Default-Values (overwritten by config-file)
     char                ip_addr_ext[16] = "127.0.0.1";
     char                ip_port_ext[6]  = "10000";
     char                ip_port_int[6]  = "5060";
     char                version[8];
-    char                tmp[2048];
     int                 mirror = 0;  
     int                 dns_mode = 0; 
 
@@ -321,7 +321,7 @@ int main()
         }
 
         //2nd-Connection
-        if (mirror == 0) {
+        if (mirror == 0 && execute_loop == 1) {
             sockfd_ext = socket(AF_INET, SOCK_STREAM, 0);
             if (sockfd_ext == -1) {
                 error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Creating of externel Socket failed.");
@@ -397,7 +397,11 @@ int main()
         }
     }
 
-    error_msg(sip_man_log, "(MAIN) INFO: Server-Loop terminated, release manipulation-tables."); 
+    error_msg(sip_man_log, "(MAIN) INFO: Terminate DNS-thread.");
+    pthread_cancel(dns_thread);
+    error_msg(sip_man_log, "(MAIN) INFO: Cancellation-Request sent to DNS-thread, waiting for terminate.");
+    pthread_join(dns_thread, NULL);
+    error_msg(sip_man_log, "(MAIN) INFO: DNS-Thread and Server-Loop terminated, release manipulation-tables."); 
     free_manipulation_table(int_modification_table);
     free_manipulation_table(ext_modification_table); 
     free_manipulation_table(mir_modification_table);
