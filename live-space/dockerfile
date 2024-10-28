@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     libldns-dev\
     nano\
     iproute2\
-    tmux
+    tmux\
+    tini
 
 #Docker-Arbeitsverzeichnis
 WORKDIR /usr/src/app
@@ -19,5 +20,6 @@ RUN ls -R /usr/src/app
 RUN gcc -o main menu/main.c menu/process_handling.c shared/log.c -I/shared/include -lncurses
 RUN gcc -o manipulator server/main.c server/hmr.c server/dns.c shared/log.c -I/shared/include -L/usr/lib/x86_64-linux-gnu -losip2 -losipparser2 -lldns
 
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["sleep", "infinity"]
 
