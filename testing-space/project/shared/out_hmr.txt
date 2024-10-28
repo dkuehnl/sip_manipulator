@@ -32,8 +32,8 @@ Supported, 100rel,timer
 #183
 Required, 100rel
 
-#200
-From, <sip:+invite@tel.t-online.de>;tag=asdfjkl3j1
-To, <sip:+9999999999@tel.t-online.de>
+#SIP/2.0 200
+X-Test, add:Manipulated
+CSeq, number:1
 
 #478

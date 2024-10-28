@@ -1,4 +1,15 @@
-#OPTIONS
+#SIP/2.0 200
+X-Test, add:Manipulated
+CSeq, number:1
+
+#INVITE 
+From, <sip:+invite@tel.t-online.de>;tag=asdfjkl3j1
+To, <sip:+000000000@tel.t-online.de>
+
+#UPDATE
+Contact, <sip:+xxxxxx@192.168.178.54:5060;transport=tcp>
+
+#TEST
 From, host:tel.t-online.de
 From, user:+4999999999
 To, host:8.8.8.8
@@ -15,25 +26,4 @@ CSeq, method:ACK
 Via, SIP/2.0/TCP 8.8.8.8:5060;branch=z9hG4bK776asdhdsdafdsf674
 P-Asserted-Identity, del:<sip:+49123456@tel.t-online.de;user=phone>
 P-preferred-identity, add:<sips:+222222222@1.1.1.1.de;user=phone>
-User-Agent, Dennis-Test v1.0
-
-#INVITE 
-From, <sip:+invite@tel.t-online.de>;tag=asdfjkl3j1
-To, <sip:+000000000@tel.t-online.de>
-
-#UPDATE
-Contact, <sip:+xxxxxx@192.168.178.54:5060;transport=tcp>
-
-#ACK
-
-#180
-Supported, 100rel,timer
-
-#183
-Required, 100rel
-
-#200
-From, <sip:+invite@tel.t-online.de>;tag=asdfjkl3j1
-To, <sip:+9999999999@tel.t-online.de>
-
-#478
+User-Agent, Dennis-Test v3.3.2

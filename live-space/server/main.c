@@ -339,10 +339,7 @@ int main()
             sockaddr_ext.sin_addr.s_addr = inet_addr(ip_addr_ext);
             sockaddr_ext.sin_port = htons(atoi(ip_port_ext));
 
-            if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) < 0) {
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Connection to %s established successfully", ip_addr_ext);
-                error_msg(sip_man_log, tmp);
-            } else {
+            if(connect(sockfd_ext, (struct sockaddr*)&sockaddr_ext, sizeof(sockaddr_ext)) != 0) {
                 if (execute_loop == 1){
                     error_msg(sip_man_log, "(MAIN) ERROR 2ND-CON: Connect to external server failed. Terminating Server.");
                     close(sockfd_ext); 
@@ -352,6 +349,9 @@ int main()
                 } else {
                     error_msg(sip_man_log, "(MAIN) INFO: SIGTERM received.");
                 }
+            } else {
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Connection to %s established successfully", ip_addr_ext);
+                error_msg(sip_man_log, tmp);
             }
         }
 
