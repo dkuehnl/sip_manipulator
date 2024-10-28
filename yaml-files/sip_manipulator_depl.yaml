@@ -20,8 +20,8 @@ spec:
         - containerPort: 30000
         stdin: true
         tty: true
+        command: ["/usr/bin/tini", "--"]
         args: ["sleep", "infinity"]
-        init: true
         volumeMounts:
         - mountPath: "/data"
           name: nfs-storage

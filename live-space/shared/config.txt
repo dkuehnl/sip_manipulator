@@ -3,7 +3,7 @@
 #Introducing new config-items without having access to the source-code will cause undefined behavior
 
 #Current Version: 
-VERSION=3.3.3
+VERSION=3.4.0
 
 #TCP/IP Config
 #External ip-address will only be used if static=1

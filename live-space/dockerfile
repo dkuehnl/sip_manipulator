@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
     nano\
     iproute2\
     tmux\
-    tini
+    tini\
+    tcpdump
 
 #Docker-Arbeitsverzeichnis
 WORKDIR /usr/src/app
