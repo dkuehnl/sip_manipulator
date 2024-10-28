@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -358,39 +359,70 @@ int main()
         //connection loop
         while(1)
         {
-            //try to read from socket
-            rv = read(connfd, buffer, sizeof(buffer));
-
-            //close connection if error detected
-            if(rv < 1){
-                error_msg(sip_man_log, "(MAIN) INFO: Connection closed.");
-                close(connfd);
-                close(sockfd_ext);
-                break;
-            } else {
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received.", rv);
-                error_msg(sip_man_log, tmp);
-            }
-
             if (mirror == 0) {
-                process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
-                rv_ext = write(sockfd_ext, buffer, strlen(buffer));
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
-                error_msg(sip_hmr_log, tmp);
-                buffer[0] = '\0';
+                fd_set read_fds; 
+                int max_fd; 
 
-                rv_ext = read(sockfd_ext, buffer, sizeof(buffer));
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received from external server", rv_ext);
-                error_msg(sip_man_log, tmp);
-                
+                FD_ZERO(&read_fds);
+                FD_SET(connfd, &read_fds); 
+                FD_SET(sockfd_ext, &read_fds); 
+                max_fd = (connfd > sockfd_ext) ? connfd : sockfd_ext; 
 
-                process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
-                rv = write(connfd, buffer, strlen(buffer));
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
-                error_msg(sip_hmr_log, tmp); 
-                buffer[0] = '\0';
+                int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+                if (activity < 0) {
+                    error_msg(sip_man_log, "(MAIN) ERROR: Select-Failure.");
+                    close(connfd);
+                    close(sockfd_ext);
+                    break;
+                }
 
-            } else if (mirror == 1) {
+                if (FD_ISSET(connfd, &read_fds)){
+                    buffer[0] = '\0';
+                    rv = read(connfd, buffer, sizeof(buffer));
+                    if(rv <= 0){
+                        error_msg(sip_man_log, "(MAIN) ERROR: internal Connection closed.");
+                        close(connfd);
+                        close(sockfd_ext);
+                        break;
+                    } else {
+                        snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received.", rv);
+                        error_msg(sip_man_log, tmp);
+                    }
+
+                    process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
+                    rv_ext = write(sockfd_ext, buffer, strlen(buffer)); 
+                    snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
+                    error_msg(sip_hmr_log, tmp);
+                }
+
+                if (FD_ISSET(sockfd_ext, &read_fds)){
+                    buffer[0] = '\0';
+                    rv_ext = read(sockfd_ext, buffer, sizeof(buffer)); 
+                    if (rv_ext <= 0){
+                        error_msg(sip_man_log, "(MAIN) ERROR: Failure with external connection.");
+                        break;
+                    }
+                    snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received from external server", rv_ext);
+                    error_msg(sip_man_log, tmp);
+
+                    process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
+                    rv = write(connfd, buffer, strlen(buffer));
+                    snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffe r:\n%s", buffer);
+                    error_msg(sip_hmr_log, tmp); 
+                    buffer[0] = '\0';
+                }
+            } else if (mirror == 1){
+                rv = read(connfd, buffer, sizeof(buffer));
+                if(rv < 1){
+                    error_msg(sip_man_log, "(MAIN) ERROR: Connection closed.");
+                    close(connfd);
+                    close(sockfd_ext);
+                    break;
+                } else {
+                    snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received.", rv);
+                    error_msg(sip_man_log, tmp);
+                }
+
                 process_buffer(buffer, mir_modification_table, sip_man_log, sip_hmr_log);
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO Mirror: MIR-Modification applied:\n'%s'", buffer);
                 error_msg(sip_hmr_log, tmp); 
