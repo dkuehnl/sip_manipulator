@@ -377,21 +377,22 @@ int main()
                 rv_ext = write(sockfd_ext, buffer, strlen(buffer));
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                 error_msg(sip_hmr_log, tmp);
-                memset(buffer, 0, sizeof(buffer));
+                buffer[0] = '\0';
 
                 rv_ext = read(sockfd_ext, buffer, sizeof(buffer));
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: %i bytes of data received from external server", rv_ext);
                 error_msg(sip_man_log, tmp);
                 
                 process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
-                rv = write(connfd, buffer, sizeof(buffer));
+                rv = write(connfd, buffer, strlen(buffer));
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                 error_msg(sip_hmr_log, tmp); 
+                buffer[0] = '\0';
             } else if (mirror == 1) {
                 process_buffer(buffer, mir_modification_table, sip_man_log, sip_hmr_log);
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO Mirror: MIR-Modification applied:\n'%s'", buffer);
                 error_msg(sip_hmr_log, tmp); 
-                rv = write(connfd, buffer, sizeof(buffer));
+                rv = write(connfd, buffer, strlen(buffer));
             }
         }
     }

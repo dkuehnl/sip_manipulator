@@ -32,8 +32,4 @@ Supported, 100rel,timer
 #183
 Required, 100rel
 
-#SIP/2.0 200
-X-Test, add:Manipulated
-CSeq, number:1
-
 #478
