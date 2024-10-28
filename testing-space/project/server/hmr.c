@@ -103,9 +103,6 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
     size_t length; 
     osip_message_to_str(sip, &dest, &length);
     strcpy(sip_message, dest); 
-
-    osip_message_free(sip); 
-    free(dest);
 }
 
  
