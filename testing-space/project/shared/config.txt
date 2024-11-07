@@ -32,4 +32,4 @@ MIR_HMR_PATH=../shared/mirror_hmr.txt
 SIP_BIN=../server/manipulator
 #Mirroring data (1=true,0=false)
 #If you're changing the mode, the manipulator must be restarted!
-MIRROR=0
+MIRROR=1

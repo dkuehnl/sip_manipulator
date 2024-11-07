@@ -1,6 +1,9 @@
 #OPTIONS
 User-Agent, Dennis-Test v3.3.1
 
+#INVITE
+User-Agent, Dennis-Test v3.3.1
+
 #REGISTER
 User-Agent, Dennis-Test v3.3.3
 
