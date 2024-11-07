@@ -15,7 +15,7 @@ extern char         sip_man_log[64];
 
 extern volatile atomic_int execute_loop;
 
-void *start_dns_thread(void* args); 
+void *start_dns_thread(void *args); 
 
 
 #endif

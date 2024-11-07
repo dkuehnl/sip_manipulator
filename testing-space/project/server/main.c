@@ -37,7 +37,7 @@ int                 sockfd, connfd, sockfd_ext;
 volatile atomic_int execute_loop = 1; 
 
 //Function-Declaration:
-ManipulationTable *load_hmr(const char *hmr_path, char *sip_man_log){ 
+ManipulationTable *load_hmr(const char *hmr_path, const char *sip_man_log){ 
     ManipulationTable *table = malloc(sizeof(ManipulationTable));
     table->entries = NULL;
     table->count = 0;
@@ -385,18 +385,18 @@ int main()
 
                 if (FD_ISSET(connfd, &read_fds)){
                     memset(buffer, 0, sizeof(buffer)); 
+                    sm.current_state = STATE_READ_SOCKET;
+                    handle_event(&sm, connfd, sip_man_log);
                     if(sm.current_state == STATE_CONNECTION_CLOSED){
                         error_msg(sip_man_log, "(MAIN) WARNING: Connection intern closed, closing sockets and exiting.");
                         close(connfd); 
                         close(sockfd_ext); 
                         break;
                     }
-                    sm.current_state = STATE_READ_SOCKET;
-                    handle_event(&sm, connfd, sip_man_log);
                     snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Extracted Message:\n%s%s\n", sm.full_sip, sm.full_sdp); 
                     error_msg(sip_man_log, tmp); 
-                    //process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
                     snprintf(buffer, sizeof(buffer), "%s%s", sm.full_sip, sm.full_sdp);
+                    process_sip(buffer, int_modification_table, sip_man_log, sip_hmr_log);
                     rv_ext = write(sockfd_ext, buffer, strlen(buffer)); 
                     snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                     error_msg(sip_hmr_log, tmp);
@@ -411,17 +411,18 @@ int main()
 
                 if (FD_ISSET(sockfd_ext, &read_fds)){
                     memset(buffer, 0, sizeof(buffer)); 
+                    sm.current_state = STATE_READ_SOCKET;
+                    handle_event(&sm, connfd, sip_man_log);
                     if(sm.current_state == STATE_CONNECTION_CLOSED){
                         error_msg(sip_man_log, "(MAIN) WARNING: Connection intern closed, closing sockets and exiting.");
                         close(connfd); 
                         close(sockfd_ext); 
                         break;
                     }
-                    sm.current_state = STATE_READ_SOCKET;
-                    handle_event(&sm, connfd, sip_man_log);
                     snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Extracted Message:\n%s%s\n", sm.full_sip, sm.full_sdp); 
                     error_msg(sip_man_log, tmp); 
-                    //process_buffer(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
+                    snprintf(buffer, sizeof(buffer), "%s%s", sm.full_sip, sm.full_sdp);
+                    process_sip(buffer, ext_modification_table, sip_man_log, sip_hmr_log);
                     rv = write(connfd, buffer, strlen(buffer));
                     snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                     error_msg(sip_hmr_log, tmp); 
@@ -434,18 +435,20 @@ int main()
                 }
             } else if (mirror == 1){
                 memset(buffer, 0, sizeof(buffer)); 
+                sm.current_state = STATE_READ_SOCKET;
+                handle_event(&sm, connfd, sip_man_log);
                 if(sm.current_state == STATE_CONNECTION_CLOSED){
                     error_msg(sip_man_log, "(MAIN) WARNING: Connection intern closed, closing sockets and exiting.");
                     close(connfd); 
                     close(sockfd_ext); 
                     break;
                 }
-                sm.current_state = STATE_READ_SOCKET;
-                handle_event(&sm, connfd, sip_man_log);
-                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Extracted Message:\n%s%s\n", sm.full_sip, sm.full_sdp); 
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Extracted SIP-Message:\n%s", sm.full_sip); 
                 error_msg(sip_man_log, tmp); 
-                //process_buffer(buffer, int_modification_table, sip_man_log, sip_hmr_log);
+                snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Extracted SDP-Message:\n%s", sm.full_sdp);
+                error_msg(sip_man_log, tmp);
                 snprintf(buffer, sizeof(buffer), "%s%s", sm.full_sip, sm.full_sdp);
+                process_sip(buffer, mir_modification_table, sip_man_log, sip_hmr_log);
                 rv = write(connfd, buffer, strlen(buffer));
                 snprintf(tmp, sizeof(tmp), "(MAIN) INFO: Transmitted Buffer:\n%s", buffer);
                 error_msg(sip_hmr_log, tmp);

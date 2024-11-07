@@ -12,13 +12,19 @@
 #include "../shared/include/log.h"
 #include "./include/hmr.h"
 
-void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man_log, char *sip_hmr_log) {
+//manipulate_sdp(sdp_data, hmr_entries, sip_man_log, sip_hmr_log); 
+void manipulate_sdp(char *sdp_data, ManipulationEntry hmr_entries, const char *sip_man_log, const char *sip_hmr_log){
+    printf("%s", sdp_data); 
+}
+
+void process_hmr(char *sip_message, ManipulationEntry hmr_entries, const char *sip_man_log, const char *sip_hmr_log) {
     osip_t *osip;
     if (osip_init(&osip)!=0) {
         error_msg(sip_hmr_log, "(HMR) ERROR process_hmr: Parser couldn't be initialized.");
         error_msg(sip_man_log, "(MHR) ERROR process_hmr: Parser couldn't be initialized.");
         return;
     }
+
     osip_message_t *sip; 
     osip_message_init(&sip);
     if (osip_message_parse(sip, sip_message, strlen(sip_message))!=0){
@@ -28,7 +34,29 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
     }
 
     for (int i = 0; i < hmr_entries.count; i++){
-        if (strncmp(hmr_entries.headers[i], "From", 4) == 0) {
+        if (strncmp(hmr_entries.headers[i], "sdp", 3) == 0) {
+            if(strncmp(hmr_entries.new_values[i], " true", 5) == 0){
+                osip_body_t *sdp_body;
+                if (sdp_body == NULL){
+                    error_msg(sip_hmr_log, "(HMR) ERROR process_hmr: SDP-Body-Element could not be initialized.");
+                    continue;
+                }
+                osip_message_get_body(sip, 0, &sdp_body);
+                char *sdp_data = sdp_body->body;
+                if (sdp_data == NULL){
+                    error_msg(sip_hmr_log, "(HMR) ERROR process_hmr: SDP could not be extracted. No manipulation will be done.");
+                    continue;
+                }
+                manipulate_sdp(sdp_data, hmr_entries, sip_man_log, sip_hmr_log); 
+                size_t length = strlen(sdp_data); 
+                char length_str[20];
+                snprintf(length_str, sizeof(length_str), "%zu", length); 
+                osip_list_remove(&sip->bodies, 0);
+                osip_message_set_body(sip, sdp_data, strlen(sdp_data));
+                osip_message_set_content_length(sip, length_str);
+            }
+
+        } else if (strncmp(hmr_entries.headers[i], "From", 4) == 0) {
             if (strncmp(hmr_entries.new_values[i], " host", 5) == 0){
                 sip->from->url->host = strchr(hmr_entries.new_values[i], ':')+1;
             } else if (strncmp(hmr_entries.new_values[i], " user", 5) == 0) {
@@ -111,9 +139,9 @@ void process_hmr(char *sip_message, ManipulationEntry hmr_entries, char *sip_man
 
  
 
-void process_buffer(char *sip_message, ManipulationTable *modification_table,char *sip_man_log, char *sip_hmr_log) {
+void process_sip(char *sip_message, ManipulationTable *modification_table, const char *sip_man_log, const char *sip_hmr_log) {
     char tmp[8192];
-    char tmp_err_msg[128];
+    char tmp_err_msg[256];
     strcpy(tmp, sip_message);
     char *r_uri_end = strstr(tmp, "\r\n"); 
     *r_uri_end = '\0';

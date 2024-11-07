@@ -32,12 +32,6 @@ void create_sip_option(char *buffer, const char *pcscf, const char* sip) {
     "Supported: 100rel,timer,histinfo\r\n"
     "User-Agent: Dennis-Test\r\n"
     "Allow: INVITE, ACK, CANCEL, OPTIONS, BYE\r\n"
-    "Content-Length: 326\r\n"
-    "Content-Type: application/sdp\r\n"
-    "\r\n"
-    "v=0\r\n"
-    "o=alice 2890844526 2890842807 IN IP4 pc33.atlanta.com\r\n"
-    "s=Session SDP\r\n"
     );
 }
 
@@ -51,6 +45,12 @@ int main(int argc, char* argv[])
     char                sdp[1024];
 
     snprintf(sdp, 1024, 
+    "Content-Length: 326\r\n"
+    "Content-Type: application/sdp\r\n"
+    "\r\n"
+    "v=0\r\n"
+    "o=alice 2890844526 2890842807 IN IP4 pc33.atlanta.com\r\n"
+    "s=Session SDP\r\n"
     "c=IN IP4 192.0.2.1\r\n"
     "t=0 0\r\n"
     "m=audio 49170 RTP/AVP 0 8 118 119\r\n"

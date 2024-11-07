@@ -168,6 +168,6 @@ void resolve_dns(const char *dns_config_path, const char *domain, char *own_prec
     error_msg(sip_man_log, "(DNS) INFO: Cancelation-Request detected, Loop terminated");
 }
 
-void *start_dns_thread(void* args) {
+void *start_dns_thread(void *args) {
     resolve_dns(dns_config_path, domain, own_precedense, sip_man_log);
 }
