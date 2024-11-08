@@ -8,13 +8,16 @@
 #include <osipparser2/osip_body.h>
 #include <osipparser2/osip_message.h>
 
-
 #include "../shared/include/log.h"
 #include "./include/hmr.h"
 
 //manipulate_sdp(sdp_data, hmr_entries, sip_man_log, sip_hmr_log); 
 void manipulate_sdp(char *sdp_data, ManipulationEntry hmr_entries, const char *sip_man_log, const char *sip_hmr_log){
-    printf("%s", sdp_data); 
+    char new_sdp[3060];
+    memset(new_sdp, 0, sizeof(new_sdp));
+
+    /*char *line_beginning = strstr(sdp_data, )
+    printf("%s", sdp_data);*/ 
 }
 
 void process_hmr(char *sip_message, ManipulationEntry hmr_entries, const char *sip_man_log, const char *sip_hmr_log) {
